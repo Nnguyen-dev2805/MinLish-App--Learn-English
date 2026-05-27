@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MinLish - Session Complete</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.8s ease-in-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        @keyframes celebrate {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-celebrate {
+            animation: celebrate 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#8f6300",
+                      "secondary": "#3b6663",
+                      "on-primary-fixed-variant": "#005047",
+                      "on-tertiary-fixed": "#281900",
+                      "on-primary-fixed": "#00201b",
+                      "secondary-container": "#bbe8e4",
+                      "primary-fixed-dim": "#7ad7c6",
+                      "surface-bright": "#f8f9fa",
+                      "on-background": "#191c1d",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-fixed": "#00201e",
+                      "tertiary-fixed-dim": "#ffba38",
+                      "surface-container-high": "#e7e8e9",
+                      "surface-dim": "#d9dadb",
+                      "outline": "#6e7a76",
+                      "inverse-surface": "#2e3132",
+                      "on-surface": "#191c1d",
+                      "secondary-fixed-dim": "#a2cfcb",
+                      "on-secondary-container": "#3f6a67",
+                      "background": "#f8f9fa",
+                      "inverse-on-surface": "#f0f1f2",
+                      "error-container": "#ffdad6",
+                      "surface-tint": "#006b5e",
+                      "surface-variant": "#e1e3e4",
+                      "on-primary-container": "#a1feec",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed-variant": "#224e4b",
+                      "outline-variant": "#bdc9c5",
+                      "secondary-fixed": "#beebe7",
+                      "on-surface-variant": "#3e4946",
+                      "tertiary-fixed": "#ffdeac",
+                      "primary": "#005e53",
+                      "surface-container": "#edeeef",
+                      "inverse-primary": "#7ad7c6",
+                      "error": "#ba1a1a",
+                      "on-tertiary": "#ffffff",
+                      "on-tertiary-container": "#ffeacf",
+                      "surface-container-low": "#f3f4f5",
+                      "on-tertiary-fixed-variant": "#604100",
+                      "on-primary": "#ffffff",
+                      "surface": "#f8f9fa",
+                      "tertiary": "#704c00",
+                      "primary-container": "#00796b",
+                      "surface-container-highest": "#e1e3e4",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "primary-fixed": "#97f3e2"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-sm": "8px",
+                      "stack-lg": "24px",
+                      "gutter": "16px",
+                      "stack-md": "16px",
+                      "margin-mobile": "16px",
+                      "margin-tablet": "24px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": ["Inter"],
+                      "title-lg": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "label-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                      "title-lg": ["22px", {"lineHeight": "28px", "fontWeight": "500"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0.5px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.25px", "fontWeight": "400"}],
+                      "display-lg": ["57px", {"lineHeight": "64px", "letterSpacing": "-0.25px", "fontWeight": "700"}],
+                      "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col font-body-md text-body-md overflow-x-hidden">
+<!-- Top Navigation Suppression: Not shown for result screen as per UX guidelines -->
+<main class="flex-grow flex flex-col items-center justify-center px-margin-mobile md:px-margin-tablet py-10 max-w-4xl mx-auto w-full">
+<!-- Header Section -->
+<header class="text-center mb-stack-lg animate-celebrate">
+<div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-container text-on-primary-container mb-stack-md shadow-lg">
+<span class="material-symbols-outlined !text-5xl" style="font-variation-settings: 'FILL' 1;">celebration</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary mb-2">Session Complete!</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Fantastic work! You're getting closer to fluency.</p>
+</header>
+<!-- Main Content Area: Asymmetric Layout / Bento Style -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 w-full">
+<!-- Progress Chart (Left Column) -->
+<section class="md:col-span-5 bg-surface-container rounded-3xl p-8 flex flex-col items-center justify-center border border-outline-variant/30">
+<div class="relative w-48 h-48">
+<svg class="w-full h-full" viewbox="0 0 100 100">
+<circle class="text-secondary-container stroke-current" cx="50" cy="50" fill="transparent" r="40" stroke-width="8"></circle>
+<circle class="text-primary stroke-current progress-ring__circle" cx="50" cy="50" fill="transparent" id="progress-circle" r="40" stroke-linecap="round" stroke-width="8" style="stroke-dasharray: 251.2; stroke-dashoffset: 251.2;"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-display-lg text-[42px] leading-tight text-on-surface">75%</span>
+<span class="font-label-lg text-label-lg text-on-surface-variant">Accuracy</span>
+</div>
+</div>
+<div class="mt-6 text-center">
+<p class="font-body-md text-body-md text-on-surface-variant italic">"A small step today, a giant leap tomorrow."</p>
+</div>
+</section>
+<!-- Stats & Details (Right Column) -->
+<section class="md:col-span-7 flex flex-col gap-4">
+<!-- Bento Style Stat Cards -->
+<div class="grid grid-cols-2 gap-4 h-full">
+<div class="col-span-2 bg-primary-container/10 p-6 rounded-3xl border border-primary/10 flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+<div>
+<p class="font-label-lg text-label-lg text-primary">Total Words</p>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">20 Words Reviewed</h3>
+</div>
+</div>
+<div class="bg-surface-container-high p-6 rounded-3xl border border-outline-variant/20 flex flex-col justify-between">
+<span class="material-symbols-outlined text-secondary !text-3xl mb-2">verified</span>
+<div>
+<h4 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">15</h4>
+<p class="font-label-md text-label-md text-on-surface-variant">Mastered</p>
+</div>
+</div>
+<div class="bg-surface-container-high p-6 rounded-3xl border border-outline-variant/20 flex flex-col justify-between">
+<span class="material-symbols-outlined text-tertiary !text-3xl mb-2">history</span>
+<div>
+<h4 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">5</h4>
+<p class="font-label-md text-label-md text-on-surface-variant">Review Soon</p>
+</div>
+</div>
+</div>
+<!-- Visual Accent Image -->
+<div class="rounded-3xl overflow-hidden h-40 relative group">
+<img alt="Progress and learning" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A serene, high-key photography of a modern, minimalist study space with a single green plant and an open digital tablet showing learning graphs. The lighting is soft and natural, emphasizing a calm and professional atmosphere. The color palette is dominated by soft whites and muted teals, perfectly aligning with a modern Material 3 corporate aesthetic. The mood is focused and encouraging, capturing the feeling of quiet efficiency and steady academic progress." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6kKCMPN6Cq_8M_4tI0qsqE1F0lh3e5s_kIfOPDZRtAnB_C9VTspckxz-tYbx5GaZtdtJWrUoXbIYT9iin2OazDtVwS8bZrzc6rNby4W0F27HxUoNwm802MK26wZVpmhfa8YwdTmRfh-RVTwFM1jRQYK2w5XZ6T-QsxYP4YnQW1oqLBPrpofXu7vk8afoyEO5ucqGCmvTo4JWm5L6PqHbXDhwICjFUitG90c9R8OFM_bp1LJL0dKd4HMy2fIrzLkvROQb_NJrWLSw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+<p class="text-white font-label-lg text-label-lg">Keep up the streak! 5 days in a row.</p>
+</div>
+</div>
+</section>
+</div>
+<!-- Action Buttons -->
+<footer class="mt-stack-lg w-full max-w-md flex flex-col gap-3">
+<button class="w-full py-4 bg-primary text-on-primary rounded-full font-label-lg text-label-lg shadow-lg hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined !text-xl">play_arrow</span>
+                Start Another Session
+            </button>
+<button class="w-full py-4 bg-secondary-container text-on-secondary-container rounded-full font-label-lg text-label-lg hover:bg-secondary-container/80 active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined !text-xl">home</span>
+                Back to Home
+            </button>
+</footer>
+</main>
+<!-- Script for Progress Animation -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const circle = document.getElementById('progress-circle');
+            const radius = circle.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+            
+            circle.style.strokeDasharray = `${circumference} ${circumference}`;
+            circle.style.strokeDashoffset = circumference;
+
+            const setProgress = (percent) => {
+                const offset = circumference - (percent / 100 * circumference);
+                circle.style.strokeDashoffset = offset;
+            };
+
+            // Animate after a small delay
+            setTimeout(() => {
+                setProgress(75);
+            }, 300);
+        });
+    </script>
+</body></html>

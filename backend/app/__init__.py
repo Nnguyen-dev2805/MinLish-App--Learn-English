@@ -1,0 +1,1 @@
+"""MinLish FastAPI backend package."""

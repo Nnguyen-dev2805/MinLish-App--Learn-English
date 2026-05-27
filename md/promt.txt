@@ -1,0 +1,77 @@
+Bạn là Senior Android Architect + Kotlin Jetpack Compose Lead.
+
+Implement Phase {SỐ_PHASE}: {TÊN_PHASE} trong MODULE_TASK_PLAN.md.
+
+Nguyên tắc quan trọng:
+- Chỉ implement đúng phase này.
+- Không sửa file ngoài phạm vi phase nếu không cần.
+- Không đổi API contract trong md/PLAN.md.
+- Không tự bịa endpoint.
+- Không dùng WebView.
+- Không copy HTML Stitch trực tiếp.
+- UI cuối cùng phải là native Jetpack Compose.
+
+Trước khi code, hãy đọc:
+- MODULE_TASK_PLAN.md
+- md/PLAN.md
+- IMPLEMENTATION_PLAN.md
+- stitch_exports/README.md
+- app/build.gradle.kts
+- gradle/libs.versions.toml
+- MainActivity.kt
+- ui/theme/*
+
+QUY TẮC STITCH-FIRST:
+Nếu phase này có làm UI hoặc sửa UI, bắt buộc trước khi code phải:
+1. Xác định chính xác screen Stitch liên quan trong MODULE_TASK_PLAN.md.
+2. Dùng Stitch MCP để kiểm tra lại screen đó:
+   - get_project với project ID: 2325080910252905506
+   - get_screen với đúng screen ID liên quan
+3. Nếu Stitch MCP lỗi, fallback sang:
+   - stitch_exports/screens/{screen}.png
+   - stitch_exports/code/{screen}.html
+   - stitch_exports/code/design_system_tokens.md
+4. Phân tích ngắn trước khi code:
+   - Layout chính của screen
+   - Header/top bar
+   - Cards/sections
+   - Buttons/inputs/chips
+   - Bottom navigation có hay không
+   - Loading/empty/error/success states
+   - Component Compose nào cần tạo/tái sử dụng
+5. Sau đó mới code native Jetpack Compose dựa theo visual của Stitch screen đó.
+
+Không được chỉ áp dụng style chung chung. Màn hình nào thì phải bám theo chính Stitch screen của màn hình đó.
+
+Flow kiến trúc phải đúng:
+Compose Screen
+-> ViewModel
+-> UseCase nếu cần
+-> Repository
+-> Retrofit API
+-> Backend FastAPI
+
+Composable không được gọi API trực tiếp.
+
+Nếu backend/data chưa hỗ trợ field hoặc endpoint nào:
+- Ghi rõ Missing backend support.
+- Dùng fallback theo MODULE_TASK_PLAN.md.
+- Không tự tạo endpoint mới.
+
+Quy trình làm việc:
+1. Tóm tắt phase này sẽ làm gì.
+2. Liệt kê file sẽ tạo/sửa.
+3. Nếu có UI, ghi rõ Stitch screen đã kiểm tra.
+4. Tiến hành code.
+5. Chạy:
+   ./gradlew :app:assembleDebug
+   ./gradlew :app:testDebugUnitTest
+6. Nếu lỗi, sửa trong phạm vi phase.
+7. Báo cáo:
+   - File đã tạo
+   - File đã sửa
+   - Chức năng đã hoàn thành
+   - Chức năng chưa làm
+   - Stitch screen đã dùng
+   - Build/test result
+   - Lỗi còn lại nếu có

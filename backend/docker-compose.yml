@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: minlish-postgres
+    environment:
+      POSTGRES_DB: minlish
+      POSTGRES_USER: minlish
+      POSTGRES_PASSWORD: minlish
+    ports:
+      - "5432:5432"
+    volumes:
+      - minlish_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minlish -d minlish"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  minlish_postgres_data:

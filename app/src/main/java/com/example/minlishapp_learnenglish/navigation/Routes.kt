@@ -1,8 +1,6 @@
 package com.example.minlishapp_learnenglish.navigation
 
 object Routes {
-    const val Splash = "splash"
-    const val Onboarding = "onboarding"
     const val Login = "login"
     const val Register = "register"
     const val Home = "main/home"

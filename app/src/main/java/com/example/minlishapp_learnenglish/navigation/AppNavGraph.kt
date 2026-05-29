@@ -22,9 +22,7 @@ import com.example.minlishapp_learnenglish.core.AppContainer
 import com.example.minlishapp_learnenglish.presentation.viewmodel.viewModelFactory
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.AuthEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.OnboardingViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SplashViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckViewModel
@@ -50,9 +48,7 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.Profil
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileViewModel
 import com.example.minlishapp_learnenglish.ui.screens.auth.LoginScreen
-import com.example.minlishapp_learnenglish.ui.screens.auth.OnboardingScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.RegisterScreen
-import com.example.minlishapp_learnenglish.ui.screens.auth.SplashScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.CreateDeckScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckDetailScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckListScreen
@@ -73,50 +69,16 @@ fun AppNavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = Routes.Splash,
+        startDestination = Routes.Login,
         modifier = modifier
     ) {
-        composable(Routes.Splash) {
-            val viewModel: SplashViewModel = viewModel(
-                factory = viewModelFactory {
-                    SplashViewModel(appContainer.checkSessionUseCase)
-                }
-            )
-            val uiState by viewModel.uiState.collectAsState()
-
-            LaunchedEffect(viewModel) {
-                viewModel.effects.collect { effect ->
-                    navController.handleAuthEffect(effect, currentRoute = Routes.Splash)
-                }
-            }
-            LaunchedEffect(Unit) {
-                viewModel.checkSession()
-            }
-
-            SplashScreen(uiState = uiState)
-        }
-        composable(Routes.Onboarding) {
-            val viewModel: OnboardingViewModel = viewModel(
-                factory = viewModelFactory {
-                    OnboardingViewModel(appContainer.setOnboardingSeenUseCase)
-                }
-            )
-
-            LaunchedEffect(viewModel) {
-                viewModel.effects.collect { effect ->
-                    navController.handleAuthEffect(effect, currentRoute = Routes.Onboarding)
-                }
-            }
-
-            OnboardingScreen(
-                onGetStarted = viewModel::getStarted,
-                onLogin = viewModel::login
-            )
-        }
         composable(Routes.Login) {
             val viewModel: LoginViewModel = viewModel(
                 factory = viewModelFactory {
-                    LoginViewModel(appContainer.loginUseCase)
+                    LoginViewModel(
+                        loginUseCase = appContainer.loginUseCase,
+                        checkSessionUseCase = appContainer.checkSessionUseCase
+                    )
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
@@ -627,7 +589,6 @@ private fun WordEditorRoute(
 private fun NavHostController.handleAuthEffect(effect: AuthEffect, currentRoute: String) {
     when (effect) {
         AuthEffect.NavigateHome -> navigateReplacingCurrentAuth(currentRoute, Routes.Home)
-        AuthEffect.NavigateOnboarding -> navigateReplacingCurrentAuth(currentRoute, Routes.Onboarding)
         AuthEffect.NavigateLogin -> navigateReplacingCurrentAuth(currentRoute, Routes.Login)
         AuthEffect.NavigateRegister -> navigateReplacingCurrentAuth(currentRoute, Routes.Register)
         is AuthEffect.ShowSnackbar -> Unit

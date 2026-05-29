@@ -17,7 +17,7 @@ Checklist này dùng để test thủ công trước buổi demo/chấm đồ á
 
 ### Register
 
-- [ ] Mở app lần đầu thấy Splash rồi Onboarding/Login/Register đúng flow.
+- [ ] Mở app lần đầu thấy Login (hoặc tự vào Home nếu đã có token hợp lệ).
 - [ ] Vào Register.
 - [ ] Để trống name/email/password rồi bấm Create Account: form hiển thị validation, không crash.
 - [ ] Nhập email sai format: hiển thị lỗi.

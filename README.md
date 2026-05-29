@@ -59,7 +59,7 @@ Build/test bằng terminal:
 
 ## Luồng Demo Đề Xuất
 
-1. Register hoặc Login.
+1. Login hoặc Register (mở app: Login nếu chưa đăng nhập; tự vào Home nếu còn token).
 2. Home Dashboard hiển thị daily plan, streak, accuracy.
 3. Decks hiển thị 30 seed decks từ Anki.
 4. Mở `Unit 01`, kiểm tra có từ `anxious`.

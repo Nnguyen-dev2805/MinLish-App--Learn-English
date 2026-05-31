@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -14,12 +14,42 @@ from app.schemas.vocabulary import (
     VocabularyItemUpdateRequest,
 )
 from app.services.deck_service import DeckService
+from app.services.import_export_service import ImportExportService
 
 router = APIRouter(tags=["decks"])
 
 
 def get_deck_service(db: Annotated[Session, Depends(get_db)]) -> DeckService:
     return DeckService(db)
+
+
+def get_import_export_service(db: Annotated[Session, Depends(get_db)]) -> ImportExportService:
+    return ImportExportService(db)
+
+
+@router.post("/decks/{deck_id}/import", response_model=dict)
+def import_deck_items(
+    deck_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    deck_service: Annotated[DeckService, Depends(get_deck_service)],
+    import_export_service: Annotated[ImportExportService, Depends(get_import_export_service)],
+    file: UploadFile = File(...),
+) -> dict:
+    # First verify deck exists and user has access
+    # Get deck will raise 404 if not found or 403 if user can't access
+    # DeckService returns a DeckResponse schema, we need the actual model
+    from app.models.deck import Deck
+    deck_model = deck_service.db.query(Deck).filter(
+        Deck.id == deck_id,
+        Deck.user_id == current_user.id
+    ).first()
+    
+    if not deck_model:
+        from app.core.exceptions import ApiError
+        raise ApiError(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy bộ từ vựng hoặc bạn không có quyền.")
+
+    imported_count = import_export_service.import_excel(current_user, deck_model, file)
+    return {"message": "Nhập dữ liệu thành công.", "imported_count": imported_count}
 
 
 @router.get("/decks", response_model=DeckListResponse)

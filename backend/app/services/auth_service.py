@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import status
+from google.auth.transport import requests
+from google.oauth2 import id_token
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -58,6 +60,40 @@ class AuthService:
         response = self._create_auth_response(user)
         self.db.commit()
         return response
+
+    def login_with_google(self, id_token_str: str, client_id: str) -> AuthResponse:
+        try:
+            idinfo = id_token.verify_oauth2_token(id_token_str, requests.Request(), client_id)
+            email = idinfo.get('email')
+            name = idinfo.get('name', 'Google User')
+            
+            if not email:
+                raise ValueError("Email not provided by Google.")
+                
+            normalized_email = self._normalize_email(email)
+            user = self._get_user_by_email(normalized_email)
+            
+            if user is None:
+                # Create a new user if doesn't exist
+                user = User(
+                    email=normalized_email,
+                    password_hash=None,  # No password for Google users
+                    name=name,
+                    daily_new_words=10,
+                )
+                self.db.add(user)
+                self.db.flush()
+                
+            response = self._create_auth_response(user)
+            self.db.commit()
+            self.db.refresh(user)
+            return response
+        except ValueError as e:
+            raise ApiError(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Google token verification failed: {str(e)}",
+                code="INVALID_GOOGLE_TOKEN",
+            )
 
     def refresh(self, refresh_token: str) -> RefreshResponse:
         token_hash = hash_refresh_token(refresh_token)

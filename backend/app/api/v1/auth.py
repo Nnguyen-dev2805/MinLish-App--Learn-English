@@ -44,12 +44,19 @@ def login(
 
 
 @router.post("/google", response_model=AuthResponse)
-def login_with_google(_request: GoogleLoginRequest) -> AuthResponse:
-    raise ApiError(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Google login chưa được cấu hình trong v1.",
-        code="GOOGLE_LOGIN_NOT_CONFIGURED",
-    )
+def login_with_google(
+    request: GoogleLoginRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> AuthResponse:
+    from app.core.config import get_settings
+    settings = get_settings()
+    if not settings.google_client_id:
+        raise ApiError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google Client ID chưa được cấu hình.",
+            code="GOOGLE_LOGIN_NOT_CONFIGURED",
+        )
+    return auth_service.login_with_google(request.id_token, settings.google_client_id)
 
 
 @router.post("/refresh", response_model=RefreshResponse)

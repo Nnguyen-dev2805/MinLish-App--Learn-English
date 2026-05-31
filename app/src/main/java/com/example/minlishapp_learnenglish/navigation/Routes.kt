@@ -4,7 +4,6 @@ object Routes {
     const val Splash = "splash"
     const val Onboarding = "onboarding"
     const val Login = "login"
-    const val Register = "register"
     const val Home = "main/home"
     const val Decks = "main/decks"
     const val Learn = "main/learn"

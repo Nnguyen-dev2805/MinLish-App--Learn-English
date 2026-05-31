@@ -42,7 +42,8 @@ sealed interface DeckDetailEffect {
 class DeckDetailViewModel(
     private val deckId: Long,
     private val getDeckDetailUseCase: GetDeckDetailUseCase,
-    private val getDeckItemsUseCase: GetDeckItemsUseCase
+    private val getDeckItemsUseCase: GetDeckItemsUseCase,
+    private val importDeckItemsUseCase: com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DeckDetailUiState())
     val uiState: StateFlow<DeckDetailUiState> = _uiState.asStateFlow()
@@ -123,6 +124,28 @@ class DeckDetailViewModel(
     private fun emitEffect(effect: DeckDetailEffect) {
         viewModelScope.launch {
             _effects.emit(effect)
+        }
+    }
+
+    fun importExcel(fileName: String, fileBytes: ByteArray) {
+        val deck = _uiState.value.deck
+        if (deck == null || deck.isReadOnly || deck.isSeed) {
+            emitEffect(DeckDetailEffect.ShowSnackbar("Seed deck là dữ liệu chỉ đọc."))
+            return
+        }
+        
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            when (val result = importDeckItemsUseCase(deckId, fileName, fileBytes)) {
+                is AppResult.Success -> {
+                    emitEffect(DeckDetailEffect.ShowSnackbar("Đã nhập thành công ${result.data} từ vựng."))
+                    loadDeck() // Reload to show new words
+                }
+                is AppResult.Failure -> {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = result.error.message) }
+                    emitEffect(DeckDetailEffect.ShowSnackbar("Lỗi nhập dữ liệu: ${result.error.message}"))
+                }
+            }
         }
     }
 }

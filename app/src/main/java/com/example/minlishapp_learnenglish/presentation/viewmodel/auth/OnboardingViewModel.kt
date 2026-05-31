@@ -17,7 +17,7 @@ class OnboardingViewModel(
     fun getStarted() {
         viewModelScope.launch {
             setOnboardingSeenUseCase()
-            _effects.emit(AuthEffect.NavigateRegister)
+            _effects.emit(AuthEffect.NavigateLogin)
         }
     }
 

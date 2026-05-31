@@ -45,6 +45,12 @@ import com.example.minlishapp_learnenglish.ui.components.TagChip
 import com.example.minlishapp_learnenglish.ui.components.WordPreviewCard
 import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import android.provider.OpenableColumns
+import androidx.compose.material.icons.outlined.FileUpload
+
 @Composable
 fun DeckDetailScreen(
     uiState: DeckDetailUiState,
@@ -53,8 +59,30 @@ fun DeckDetailScreen(
     onRetry: () -> Unit,
     onAddWord: () -> Unit,
     onEditWord: (Long) -> Unit,
+    onImport: (String, ByteArray) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            var fileName = "import.xlsx"
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1) {
+                        fileName = cursor.getString(nameIndex)
+                    }
+                }
+            }
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                val bytes = inputStream.readBytes()
+                onImport(fileName, bytes)
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -73,7 +101,11 @@ fun DeckDetailScreen(
             item {
                 DeckDetailTopBar(
                     title = uiState.deck?.displayTitle ?: "Deck Detail",
-                    onBack = onBack
+                    onBack = onBack,
+                    canEdit = uiState.deck?.isReadOnly == false && uiState.deck?.isSeed == false,
+                    onImportClick = {
+                        filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    }
                 )
             }
             when {
@@ -156,10 +188,13 @@ fun DeckDetailScreen(
     }
 }
 
+
 @Composable
 private fun DeckDetailTopBar(
     title: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    canEdit: Boolean = false,
+    onImportClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -182,6 +217,11 @@ private fun DeckDetailTopBar(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+        if (canEdit) {
+            IconButton(onClick = onImportClick) {
+                Icon(imageVector = Icons.Outlined.FileUpload, contentDescription = "Import Excel")
+            }
         }
         IconButton(onClick = {}) {
             Icon(imageVector = Icons.Outlined.Search, contentDescription = null)

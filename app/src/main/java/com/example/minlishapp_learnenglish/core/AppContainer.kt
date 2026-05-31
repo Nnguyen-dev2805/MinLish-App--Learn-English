@@ -102,6 +102,7 @@ class AppContainer(context: Context) {
     )
     val setOnboardingSeenUseCase = SetOnboardingSeenUseCase(userPreferencesStorage)
     val loginUseCase = LoginUseCase(authRepository)
+    val googleLoginUseCase = com.example.minlishapp_learnenglish.domain.usecase.auth.GoogleLoginUseCase(authRepository)
     val registerUseCase = RegisterUseCase(authRepository)
     val loadHomeUseCase = LoadHomeUseCase(
         authRepository = authRepository,
@@ -111,6 +112,7 @@ class AppContainer(context: Context) {
     val getDecksUseCase = GetDecksUseCase(deckRepository)
     val getDeckDetailUseCase = GetDeckDetailUseCase(deckRepository)
     val getDeckItemsUseCase = GetDeckItemsUseCase(deckRepository)
+    val importDeckItemsUseCase = com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase(deckRepository)
     val createDeckUseCase = CreateDeckUseCase(deckRepository)
     val createWordUseCase = CreateWordUseCase(deckRepository)
     val updateWordUseCase = UpdateWordUseCase(deckRepository)

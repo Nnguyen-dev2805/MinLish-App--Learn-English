@@ -42,6 +42,7 @@ app/services/analytics_service.py
 app/services/anki_import_service.py
 app/services/auth_service.py
 app/services/deck_service.py
+app/services/import_export_service.py
 app/services/learning_service.py
 app/services/notification_service.py
 app/services/sm2_service.py

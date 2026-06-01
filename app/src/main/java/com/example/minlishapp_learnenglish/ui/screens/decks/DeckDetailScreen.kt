@@ -225,12 +225,6 @@ private fun DeckDetailTopBar(
                 Icon(imageVector = Icons.Outlined.FileUpload, contentDescription = "Import Excel")
             }
         }
-        IconButton(onClick = {}) {
-            Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
-        }
-        IconButton(onClick = {}) {
-            Icon(imageVector = Icons.Outlined.Settings, contentDescription = null)
-        }
     }
 }
 

@@ -206,6 +206,7 @@ fun AppNavGraph(
                 uiState = uiState,
                 snackbarHostState = snackbarHostState,
                 onSearchChange = { query -> viewModel.onEvent(DeckListEvent.SearchChanged(query)) },
+                onFilterSelected = { filter -> viewModel.onEvent(DeckListEvent.FilterSelected(filter)) },
                 onDeckClick = { deckId -> viewModel.onEvent(DeckListEvent.DeckSelected(deckId)) },
                 onCreateDeck = { viewModel.onEvent(DeckListEvent.CreateDeckClicked) },
                 onRetry = { viewModel.onEvent(DeckListEvent.Retry) }
@@ -320,6 +321,7 @@ fun AppNavGraph(
                 snackbarHostState = snackbarHostState,
                 onBack = { viewModel.onEvent(DeckDetailEvent.BackClicked) },
                 onRetry = { viewModel.onEvent(DeckDetailEvent.Retry) },
+                onLearnDeck = { id -> navController.navigate(Routes.learnDeck(id)) },
                 onAddWord = { viewModel.onEvent(DeckDetailEvent.AddWordClicked) },
                 onEditWord = { wordId -> viewModel.onEvent(DeckDetailEvent.EditWordClicked(wordId)) },
                 onImport = viewModel::importExcel
@@ -373,6 +375,62 @@ fun AppNavGraph(
                             reviewSessionSummary = effect.summary
                             navController.navigate(Routes.ReviewResults) {
                                 popUpTo(Routes.Learn) { inclusive = true }
+                            }
+                        }
+                        is FlashcardEffect.ShowSnackbar -> {
+                            snackbarHostState.showSnackbar(effect.message)
+                        }
+                    }
+                }
+            }
+
+            Box {
+                FlashcardLearningScreen(
+                    uiState = uiState,
+                    onBack = { viewModel.onEvent(FlashcardEvent.BackClicked) },
+                    onRetry = { viewModel.onEvent(FlashcardEvent.Retry) },
+                    onShowAnswer = { viewModel.onEvent(FlashcardEvent.ShowAnswer) },
+                    onRating = { rating ->
+                        viewModel.onEvent(FlashcardEvent.SubmitRating(rating))
+                    }
+                )
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+        }
+        composable(
+            route = Routes.LearnDeck,
+            arguments = listOf(
+                navArgument("deckId") { type = NavType.LongType },
+                navArgument("mode") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val deckId = backStackEntry.arguments?.getLong("deckId") ?: return@composable
+            val mode = backStackEntry.arguments?.getString("mode") ?: "deck_all"
+            val viewModel: FlashcardViewModel = viewModel(
+                key = "learn-deck-$deckId-$mode",
+                factory = viewModelFactory {
+                    FlashcardViewModel(
+                        getReviewCardsUseCase = appContainer.getReviewCardsUseCase,
+                        submitReviewUseCase = appContainer.submitReviewUseCase,
+                        deckId = deckId,
+                        mode = mode
+                    )
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        FlashcardEffect.NavigateBack -> navController.popBackStack()
+                        is FlashcardEffect.NavigateReviewResults -> {
+                            reviewSessionSummary = effect.summary
+                            navController.navigate(Routes.ReviewResults) {
+                                popUpTo(Routes.LearnDeck) { inclusive = true }
                             }
                         }
                         is FlashcardEffect.ShowSnackbar -> {

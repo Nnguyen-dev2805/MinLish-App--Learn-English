@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -33,8 +33,10 @@ def get_daily_plan(
 def get_review_cards(
     current_user: Annotated[User, Depends(get_current_user)],
     learning_service: Annotated[LearningService, Depends(get_learning_service)],
+    deck_id: int | None = Query(default=None, ge=1),
+    mode: str | None = Query(default=None),
 ) -> ReviewCardsResponse:
-    return learning_service.get_review_cards(current_user)
+    return learning_service.get_review_cards(current_user, deck_id=deck_id, mode=mode)
 
 
 @router.post("/reviews", response_model=SubmitReviewResponse)

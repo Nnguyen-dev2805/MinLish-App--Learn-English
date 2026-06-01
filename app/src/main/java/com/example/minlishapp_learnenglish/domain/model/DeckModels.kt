@@ -10,10 +10,16 @@ data class VocabularyDeck(
     val isReadOnly: Boolean,
     val sourceName: String?,
     val sourceUnit: String?,
-    val wordCount: Int
+    val wordCount: Int,
+    val learnedCount: Int = 0
 ) {
     val displayTitle: String = sourceUnit ?: name
     val displayDescription: String = description ?: sourceName ?: "Custom vocabulary deck"
+    val learningProgress: Float = if (wordCount > 0) {
+        learnedCount.coerceIn(0, wordCount).toFloat() / wordCount.toFloat()
+    } else {
+        0f
+    }
 }
 
 data class VocabularyWord(

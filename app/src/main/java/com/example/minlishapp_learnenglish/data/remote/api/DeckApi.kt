@@ -14,6 +14,14 @@ import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Multipart
+import retrofit2.http.Part
+import okhttp3.MultipartBody
+
+class ImportResponseDto(
+    val message: String,
+    val imported_count: Int
+)
 
 interface DeckApi {
     @GET("decks")
@@ -36,6 +44,13 @@ interface DeckApi {
 
     @GET("decks/{deck_id}/items")
     suspend fun getDeckItems(@Path("deck_id") deckId: Long): VocabularyItemListResponseDto
+
+    @Multipart
+    @POST("decks/{deck_id}/import")
+    suspend fun importDeckItems(
+        @Path("deck_id") deckId: Long,
+        @Part file: MultipartBody.Part
+    ): ImportResponseDto
 
     @POST("decks/{deck_id}/items")
     suspend fun createDeckItem(

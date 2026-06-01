@@ -10,6 +10,8 @@ import com.example.minlishapp_learnenglish.data.remote.dto.toDomain
 import com.example.minlishapp_learnenglish.domain.model.VocabularyDeck
 import com.example.minlishapp_learnenglish.domain.model.VocabularyWord
 import com.squareup.moshi.Moshi
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 
 interface DeckRepository {
     suspend fun getDecks(): AppResult<List<VocabularyDeck>>
@@ -46,6 +48,8 @@ interface DeckRepository {
     ): AppResult<VocabularyWord>
 
     suspend fun deleteWord(itemId: Long): AppResult<Unit>
+    
+    suspend fun importDeckItems(deckId: Long, fileName: String, fileBytes: ByteArray): AppResult<Int>
 }
 
 class DefaultDeckRepository(
@@ -145,6 +149,15 @@ class DefaultDeckRepository(
         return safeApiCall(moshi) {
             deckApi.deleteItem(itemId)
         }
+    }
+
+    override suspend fun importDeckItems(deckId: Long, fileName: String, fileBytes: ByteArray): AppResult<Int> {
+        return safeApiCall(moshi) {
+            val mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".toMediaTypeOrNull()
+            val requestBody = fileBytes.toRequestBody(mediaType)
+            val part = okhttp3.MultipartBody.Part.createFormData("file", fileName, requestBody)
+            deckApi.importDeckItems(deckId, part)
+        }.map { it.imported_count }
     }
 
     private fun cleanOptionalText(value: String?): String? {

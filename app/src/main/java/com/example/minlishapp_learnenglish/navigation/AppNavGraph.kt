@@ -23,7 +23,6 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.viewModelFacto
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.AuthEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.OnboardingViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SplashViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEvent
@@ -51,7 +50,6 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.Profil
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileViewModel
 import com.example.minlishapp_learnenglish.ui.screens.auth.LoginScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.OnboardingScreen
-import com.example.minlishapp_learnenglish.ui.screens.auth.RegisterScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SplashScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.CreateDeckScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckDetailScreen
@@ -116,7 +114,7 @@ fun AppNavGraph(
         composable(Routes.Login) {
             val viewModel: LoginViewModel = viewModel(
                 factory = viewModelFactory {
-                    LoginViewModel(appContainer.loginUseCase)
+                    LoginViewModel(appContainer.googleLoginUseCase)
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
@@ -134,55 +132,11 @@ fun AppNavGraph(
             LoginScreen(
                 uiState = uiState,
                 snackbarHostState = snackbarHostState,
-                onEmailChange = viewModel::onEmailChange,
-                onPasswordChange = viewModel::onPasswordChange,
-                onLogin = viewModel::login,
-                onForgotPassword = viewModel::forgotPassword,
                 onGoogleLogin = viewModel::googleLogin,
-                onRegister = {
-                    navController.navigateReplacingCurrentAuth(
-                        currentRoute = Routes.Login,
-                        targetRoute = Routes.Register
-                    )
-                }
+                onError = viewModel::showError
             )
         }
-        composable(Routes.Register) {
-            val viewModel: RegisterViewModel = viewModel(
-                factory = viewModelFactory {
-                    RegisterViewModel(appContainer.registerUseCase)
-                }
-            )
-            val uiState by viewModel.uiState.collectAsState()
-            val snackbarHostState = remember { SnackbarHostState() }
 
-            LaunchedEffect(viewModel) {
-                viewModel.effects.collect { effect ->
-                    when (effect) {
-                        is AuthEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
-                        else -> navController.handleAuthEffect(effect, currentRoute = Routes.Register)
-                    }
-                }
-            }
-
-            RegisterScreen(
-                uiState = uiState,
-                snackbarHostState = snackbarHostState,
-                onNameChange = viewModel::onNameChange,
-                onEmailChange = viewModel::onEmailChange,
-                onPasswordChange = viewModel::onPasswordChange,
-                onGoalChange = viewModel::onGoalChange,
-                onLevelChange = viewModel::onLevelChange,
-                onTermsChange = viewModel::onTermsChange,
-                onRegister = viewModel::register,
-                onLogin = {
-                    navController.navigateReplacingCurrentAuth(
-                        currentRoute = Routes.Register,
-                        targetRoute = Routes.Login
-                    )
-                }
-            )
-        }
         composable(Routes.Home) {
             val viewModel: HomeViewModel = viewModel(
                 factory = viewModelFactory {
@@ -317,7 +271,8 @@ fun AppNavGraph(
                     DeckDetailViewModel(
                         deckId = deckId,
                         getDeckDetailUseCase = appContainer.getDeckDetailUseCase,
-                        getDeckItemsUseCase = appContainer.getDeckItemsUseCase
+                        getDeckItemsUseCase = appContainer.getDeckItemsUseCase,
+                        importDeckItemsUseCase = appContainer.importDeckItemsUseCase
                     )
                 }
             )
@@ -368,7 +323,8 @@ fun AppNavGraph(
                 onRetry = { viewModel.onEvent(DeckDetailEvent.Retry) },
                 onLearnDeck = { id -> navController.navigate(Routes.learnDeck(id)) },
                 onAddWord = { viewModel.onEvent(DeckDetailEvent.AddWordClicked) },
-                onEditWord = { wordId -> viewModel.onEvent(DeckDetailEvent.EditWordClicked(wordId)) }
+                onEditWord = { wordId -> viewModel.onEvent(DeckDetailEvent.EditWordClicked(wordId)) },
+                onImport = viewModel::importExcel
             )
         }
         composable(
@@ -687,7 +643,6 @@ private fun NavHostController.handleAuthEffect(effect: AuthEffect, currentRoute:
         AuthEffect.NavigateHome -> navigateReplacingCurrentAuth(currentRoute, Routes.Home)
         AuthEffect.NavigateOnboarding -> navigateReplacingCurrentAuth(currentRoute, Routes.Onboarding)
         AuthEffect.NavigateLogin -> navigateReplacingCurrentAuth(currentRoute, Routes.Login)
-        AuthEffect.NavigateRegister -> navigateReplacingCurrentAuth(currentRoute, Routes.Register)
         is AuthEffect.ShowSnackbar -> Unit
     }
 }

@@ -20,6 +20,10 @@ class Settings(BaseSettings):
         default="postgresql+psycopg://minlish:minlish@localhost:5432/minlish",
         validation_alias="DATABASE_URL",
     )
+    google_client_id: str = Field(
+        default="",
+        validation_alias="GOOGLE_CLIENT_ID",
+    )
     static_dir: str = Field(default="static", validation_alias="STATIC_DIR")
     backend_cors_origins: list[str] = Field(default_factory=list)
 

@@ -54,6 +54,33 @@ def test_review_cards_returns_seed_cards_without_creating_progress(client: TestC
         assert db.scalar(select(UserWordProgress).limit(1)) is None
 
 
+def test_deck_all_review_cards_returns_every_word_in_deck(client: TestClient) -> None:
+    seed_ids = _seed_anki_decks(client)
+    headers = _auth_headers(client)
+    anxious_id = seed_ids["anxious_item_id"]
+
+    submit_response = client.post(
+        "/api/v1/learning/reviews",
+        headers=headers,
+        json={"vocabulary_item_id": anxious_id, "rating": "Good", "response_ms": 1800},
+    )
+    assert submit_response.status_code == 200
+
+    response = client.get(
+        f"/api/v1/learning/review-cards?deck_id={seed_ids['Unit 01']}&mode=deck_all",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert len(items) == 20
+    assert items[0]["id"] == anxious_id
+    assert items[0]["word"] == "anxious"
+    assert items[0]["is_new"] is False
+    assert items[0]["due_at"] is not None
+    assert items[1]["is_new"] is True
+
+
 def test_submit_good_creates_progress_and_review_log(client: TestClient) -> None:
     seed_ids = _seed_anki_decks(client)
     headers = _auth_headers(client)

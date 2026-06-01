@@ -21,7 +21,8 @@ data class DeckResponseDto(
     @param:Json(name = "is_read_only") val isReadOnly: Boolean,
     @param:Json(name = "source_name") val sourceName: String? = null,
     @param:Json(name = "source_unit") val sourceUnit: String? = null,
-    @param:Json(name = "word_count") val wordCount: Int
+    @param:Json(name = "word_count") val wordCount: Int,
+    @param:Json(name = "learned_count") val learnedCount: Int = 0
 )
 
 @JsonClass(generateAdapter = true)
@@ -97,7 +98,8 @@ fun DeckResponseDto.toDomain(): VocabularyDeck {
         isReadOnly = isReadOnly,
         sourceName = sourceName,
         sourceUnit = sourceUnit,
-        wordCount = wordCount
+        wordCount = wordCount,
+        learnedCount = learnedCount
     )
 }
 

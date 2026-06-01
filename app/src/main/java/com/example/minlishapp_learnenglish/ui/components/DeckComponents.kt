@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Edit
@@ -129,9 +128,16 @@ fun DeckStatsRow(deck: VocabularyDeck, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.secondary
         )
+        if (deck.learnedCount > 0) {
+            Text(
+                text = "${deck.learnedCount} learned",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Spacer(modifier = Modifier.weight(1f))
         LinearProgressIndicator(
-            progress = { 0f },
+            progress = { deck.learningProgress },
             modifier = Modifier
                 .size(width = 64.dp, height = 6.dp)
                 .clip(RoundedCornerShape(999.dp)),
@@ -179,19 +185,6 @@ fun WordPreviewCard(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.xs)) {
-                    if (word.wordAudioUrl != null) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
-                                contentDescription = null,
-                                modifier = Modifier.padding(MinLishSpacing.xs)
-                            )
-                        }
-                    }
                     if (canEdit && onEditClick != null) {
                         IconButton(onClick = onEditClick) {
                             Icon(
@@ -208,27 +201,38 @@ fun WordPreviewCard(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (!word.description.isNullOrBlank()) {
-                Text(
-                    text = word.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
+            word.description?.takeIf { it.isNotBlank() }?.let { description ->
+                WordInfoSection(label = "Definition", text = description)
+            }
+            word.example?.takeIf { it.isNotBlank() }?.let { example ->
+                WordInfoSection(label = "Example", text = example)
+            }
+            word.imageUrl?.takeIf { it.isNotBlank() }?.let { imageUrl ->
+                RemoteMediaImage(
+                    imageUrl = imageUrl,
+                    contentDescription = word.word
                 )
             }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.xs),
-                verticalArrangement = Arrangement.spacedBy(MinLishSpacing.xs)
-            ) {
-                word.note?.takeIf { it.isNotBlank() }?.let {
-                    TagChip(text = it)
-                }
-                if (word.hasMedia) {
-                    TagChip(text = "Media")
-                }
-            }
         }
+    }
+}
+
+@Composable
+private fun WordInfoSection(label: String, text: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

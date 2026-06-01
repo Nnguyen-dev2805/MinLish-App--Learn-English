@@ -13,7 +13,10 @@ import com.squareup.moshi.Moshi
 
 interface LearningRepository {
     suspend fun getDailyPlan(): AppResult<DailyLearningPlan>
-    suspend fun getReviewCards(): AppResult<List<ReviewCard>>
+    suspend fun getReviewCards(
+        deckId: Long? = null,
+        mode: String? = null
+    ): AppResult<List<ReviewCard>>
     suspend fun submitReview(
         vocabularyItemId: Long,
         rating: ReviewRating,
@@ -31,9 +34,12 @@ class DefaultLearningRepository(
         }.map { it.toDomain() }
     }
 
-    override suspend fun getReviewCards(): AppResult<List<ReviewCard>> {
+    override suspend fun getReviewCards(
+        deckId: Long?,
+        mode: String?
+    ): AppResult<List<ReviewCard>> {
         return safeApiCall(moshi) {
-            learningApi.getReviewCards()
+            learningApi.getReviewCards(deckId = deckId, mode = mode)
         }.map { response ->
             response.items.map { it.toDomain() }
         }

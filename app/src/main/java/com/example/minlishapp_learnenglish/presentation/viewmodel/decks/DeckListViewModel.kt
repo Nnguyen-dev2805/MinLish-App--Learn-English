@@ -18,6 +18,7 @@ data class DeckListUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val query: String = "",
+    val selectedFilter: DeckFilter = DeckFilter.All,
     val decks: List<VocabularyDeck> = emptyList(),
     val filteredDecks: List<VocabularyDeck> = emptyList(),
     val errorMessage: String? = null
@@ -31,6 +32,7 @@ data class DeckListUiState(
 
 sealed interface DeckListEvent {
     data class SearchChanged(val query: String) : DeckListEvent
+    data class FilterSelected(val filter: DeckFilter) : DeckListEvent
     data class DeckSelected(val deckId: Long) : DeckListEvent
     data object CreateDeckClicked : DeckListEvent
     data object Retry : DeckListEvent
@@ -41,6 +43,12 @@ sealed interface DeckListEffect {
     data class NavigateDeckDetail(val deckId: Long) : DeckListEffect
     data object NavigateCreateDeck : DeckListEffect
     data class ShowSnackbar(val message: String) : DeckListEffect
+}
+
+enum class DeckFilter(val label: String) {
+    All("All Decks"),
+    Seed("Seed Decks"),
+    Mine("My Decks")
 }
 
 class DeckListViewModel(
@@ -59,6 +67,7 @@ class DeckListViewModel(
     fun onEvent(event: DeckListEvent) {
         when (event) {
             is DeckListEvent.SearchChanged -> updateSearch(event.query)
+            is DeckListEvent.FilterSelected -> updateFilter(event.filter)
             is DeckListEvent.DeckSelected -> emitEffect(DeckListEffect.NavigateDeckDetail(event.deckId))
             DeckListEvent.CreateDeckClicked -> emitEffect(DeckListEffect.NavigateCreateDeck)
             DeckListEvent.Refresh -> loadDecks(isRefresh = true)
@@ -79,7 +88,7 @@ class DeckListViewModel(
             when (val result = getDecksUseCase()) {
                 is AppResult.Success -> {
                     _uiState.update {
-                        val filtered = filterDecks(result.data, it.query)
+                        val filtered = filterDecks(result.data, it.query, it.selectedFilter)
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
@@ -110,20 +119,45 @@ class DeckListViewModel(
         _uiState.update {
             it.copy(
                 query = query,
-                filteredDecks = filterDecks(it.decks, query)
+                filteredDecks = filterDecks(it.decks, query, it.selectedFilter)
             )
         }
     }
 
-    private fun filterDecks(decks: List<VocabularyDeck>, query: String): List<VocabularyDeck> {
-        val normalizedQuery = query.trim().lowercase()
-        if (normalizedQuery.isEmpty()) return decks
-        return decks.filter { deck ->
-            deck.name.contains(normalizedQuery, ignoreCase = true) ||
-                deck.sourceUnit.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
-                deck.sourceName.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
-                deck.tags.any { it.contains(normalizedQuery, ignoreCase = true) }
+    private fun updateFilter(filter: DeckFilter) {
+        _uiState.update {
+            it.copy(
+                selectedFilter = filter,
+                filteredDecks = filterDecks(it.decks, it.query, filter)
+            )
         }
+    }
+
+    private fun filterDecks(
+        decks: List<VocabularyDeck>,
+        query: String,
+        selectedFilter: DeckFilter
+    ): List<VocabularyDeck> {
+        val normalizedQuery = query.trim().lowercase()
+        return decks.filter { deck ->
+            deck.matchesFilter(selectedFilter) && deck.matchesSearch(normalizedQuery)
+        }
+    }
+
+    private fun VocabularyDeck.matchesFilter(filter: DeckFilter): Boolean {
+        return when (filter) {
+            DeckFilter.All -> true
+            DeckFilter.Seed -> isSeed || (isPublic && isReadOnly)
+            DeckFilter.Mine -> !isSeed && !isPublic
+        }
+    }
+
+    private fun VocabularyDeck.matchesSearch(normalizedQuery: String): Boolean {
+        if (normalizedQuery.isEmpty()) return true
+        return name.contains(normalizedQuery, ignoreCase = true) ||
+            sourceUnit.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
+            sourceName.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
+            tags.any { it.contains(normalizedQuery, ignoreCase = true) }
     }
 
     private fun emitEffect(effect: DeckListEffect) {

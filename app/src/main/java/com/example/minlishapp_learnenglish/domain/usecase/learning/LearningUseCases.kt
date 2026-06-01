@@ -9,8 +9,11 @@ import com.example.minlishapp_learnenglish.domain.model.SubmitReviewResult
 class GetReviewCardsUseCase(
     private val learningRepository: LearningRepository
 ) {
-    suspend operator fun invoke(): AppResult<List<ReviewCard>> {
-        return learningRepository.getReviewCards()
+    suspend operator fun invoke(
+        deckId: Long? = null,
+        mode: String? = null
+    ): AppResult<List<ReviewCard>> {
+        return learningRepository.getReviewCards(deckId = deckId, mode = mode)
     }
 }
 

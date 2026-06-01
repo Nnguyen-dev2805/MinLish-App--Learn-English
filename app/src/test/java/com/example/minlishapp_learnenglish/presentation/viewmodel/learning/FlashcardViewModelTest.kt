@@ -148,7 +148,10 @@ private class FakeLearningRepository(
         )
     }
 
-    override suspend fun getReviewCards(): AppResult<List<ReviewCard>> = cardsResult
+    override suspend fun getReviewCards(
+        deckId: Long?,
+        mode: String?
+    ): AppResult<List<ReviewCard>> = cardsResult
 
     override suspend fun submitReview(
         vocabularyItemId: Long,

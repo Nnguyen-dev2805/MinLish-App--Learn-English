@@ -161,7 +161,10 @@ private class FakeLearningRepository(
 ) : LearningRepository {
     override suspend fun getDailyPlan(): AppResult<DailyLearningPlan> = dailyPlanResult
 
-    override suspend fun getReviewCards(): AppResult<List<ReviewCard>> {
+    override suspend fun getReviewCards(
+        deckId: Long?,
+        mode: String?
+    ): AppResult<List<ReviewCard>> {
         return AppResult.Success(emptyList())
     }
 

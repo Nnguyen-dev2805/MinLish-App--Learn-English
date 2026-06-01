@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
 from app.models.deck import Deck
+from app.models.progress import UserWordProgress
 from app.models.user import User
 from app.models.vocabulary_item import VocabularyItem
 from app.schemas.deck import DeckCreateRequest, DeckListResponse, DeckResponse, DeckUpdateRequest
@@ -22,7 +23,14 @@ class DeckService:
     def list_decks(self, user: User) -> DeckListResponse:
         rows = self._visible_deck_count_statement(user).all()
         return DeckListResponse(
-            items=[self._deck_response(deck, word_count) for deck, word_count in rows],
+            items=[
+                self._deck_response(
+                    deck=deck,
+                    word_count=word_count,
+                    learned_count=self._learned_count(user, deck.id),
+                )
+                for deck, word_count in rows
+            ],
         )
 
     def create_deck(self, user: User, request: DeckCreateRequest) -> DeckResponse:
@@ -38,11 +46,15 @@ class DeckService:
         self.db.add(deck)
         self.db.commit()
         self.db.refresh(deck)
-        return self._deck_response(deck, 0)
+        return self._deck_response(deck, word_count=0, learned_count=0)
 
     def get_deck(self, user: User, deck_id: int) -> DeckResponse:
         deck = self._get_visible_deck(user, deck_id)
-        return self._deck_response(deck, self._word_count(deck.id))
+        return self._deck_response(
+            deck=deck,
+            word_count=self._word_count(deck.id),
+            learned_count=self._learned_count(user, deck.id),
+        )
 
     def update_deck(self, user: User, deck_id: int, request: DeckUpdateRequest) -> DeckResponse:
         deck = self._get_visible_deck(user, deck_id)
@@ -58,7 +70,11 @@ class DeckService:
 
         self.db.commit()
         self.db.refresh(deck)
-        return self._deck_response(deck, self._word_count(deck.id))
+        return self._deck_response(
+            deck=deck,
+            word_count=self._word_count(deck.id),
+            learned_count=self._learned_count(user, deck.id),
+        )
 
     def delete_deck(self, user: User, deck_id: int) -> None:
         deck = self._get_visible_deck(user, deck_id)
@@ -186,7 +202,18 @@ class DeckService:
             select(func.count(VocabularyItem.id)).where(VocabularyItem.deck_id == deck_id),
         ) or 0
 
-    def _deck_response(self, deck: Deck, word_count: int) -> DeckResponse:
+    def _learned_count(self, user: User, deck_id: int) -> int:
+        return self.db.scalar(
+            select(func.count(UserWordProgress.id))
+            .join(VocabularyItem, VocabularyItem.id == UserWordProgress.vocabulary_item_id)
+            .where(
+                UserWordProgress.user_id == user.id,
+                VocabularyItem.deck_id == deck_id,
+                UserWordProgress.last_reviewed_at.is_not(None),
+            ),
+        ) or 0
+
+    def _deck_response(self, deck: Deck, word_count: int, learned_count: int) -> DeckResponse:
         return DeckResponse(
             id=deck.id,
             name=deck.name,
@@ -198,6 +225,7 @@ class DeckService:
             source_name=deck.source_name,
             source_unit=deck.source_unit,
             word_count=word_count,
+            learned_count=learned_count,
         )
 
     def _item_response(self, item: VocabularyItem) -> VocabularyItemResponse:

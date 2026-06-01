@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// class chứa mọi state để UI vẽ màn hình
 data class FlashcardUiState(
     val isLoading: Boolean = true,
     val isSubmitting: Boolean = false,
@@ -46,6 +47,7 @@ data class FlashcardUiState(
         get() = !isLoading && cards.isNotEmpty() && currentIndex >= cards.size
 }
 
+// các event mà UI gửi cho VM
 sealed interface FlashcardEvent {
     data object Retry : FlashcardEvent
     data object ShowAnswer : FlashcardEvent
@@ -53,6 +55,7 @@ sealed interface FlashcardEvent {
     data class SubmitRating(val rating: ReviewRating) : FlashcardEvent
 }
 
+// event chỉ xảy ra 1 lần
 sealed interface FlashcardEffect {
     data object NavigateBack : FlashcardEffect
     data class NavigateReviewResults(val summary: ReviewSessionSummary) : FlashcardEffect
@@ -61,7 +64,9 @@ sealed interface FlashcardEffect {
 
 class FlashcardViewModel(
     private val getReviewCardsUseCase: GetReviewCardsUseCase,
-    private val submitReviewUseCase: SubmitReviewUseCase
+    private val submitReviewUseCase: SubmitReviewUseCase,
+    private val deckId: Long? = null,
+    private val mode: String? = null
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(FlashcardUiState())
     val uiState: StateFlow<FlashcardUiState> = _uiState.asStateFlow()
@@ -95,7 +100,7 @@ class FlashcardViewModel(
                 )
             }
 
-            when (val result = getReviewCardsUseCase()) {
+            when (val result = getReviewCardsUseCase(deckId = deckId, mode = mode)) {
                 is AppResult.Success -> {
                     cardStartedAtMs = System.currentTimeMillis()
                     _uiState.update {

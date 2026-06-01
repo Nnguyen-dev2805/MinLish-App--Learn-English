@@ -56,6 +56,39 @@ class DeckViewModelTest {
     }
 
     @Test
+    fun `deck list filter shows seed and my decks locally`() = runTest {
+        val viewModel = DeckListViewModel(
+            GetDecksUseCase(FakeDeckRepository(decksResult = AppResult.Success(sampleMixedDecks)))
+        )
+        advanceUntilIdle()
+
+        viewModel.onEvent(DeckListEvent.FilterSelected(DeckFilter.Seed))
+        assertEquals(2, viewModel.uiState.value.filteredDecks.size)
+        assertEquals(true, viewModel.uiState.value.filteredDecks.all { it.isSeed })
+
+        viewModel.onEvent(DeckListEvent.FilterSelected(DeckFilter.Mine))
+        assertEquals(1, viewModel.uiState.value.filteredDecks.size)
+        assertEquals("My Travel Words", viewModel.uiState.value.filteredDecks.first().name)
+    }
+
+    @Test
+    fun `deck list combines search and filter`() = runTest {
+        val viewModel = DeckListViewModel(
+            GetDecksUseCase(FakeDeckRepository(decksResult = AppResult.Success(sampleMixedDecks)))
+        )
+        advanceUntilIdle()
+
+        viewModel.onEvent(DeckListEvent.FilterSelected(DeckFilter.Seed))
+        viewModel.onEvent(DeckListEvent.SearchChanged("travel"))
+
+        assertEquals(0, viewModel.uiState.value.filteredDecks.size)
+
+        viewModel.onEvent(DeckListEvent.FilterSelected(DeckFilter.Mine))
+        assertEquals(1, viewModel.uiState.value.filteredDecks.size)
+        assertEquals("My Travel Words", viewModel.uiState.value.filteredDecks.first().name)
+    }
+
+    @Test
     fun `deck list error exposes message`() = runTest {
         val error = AppError.Network("Không thể kết nối máy chủ.")
         val viewModel = DeckListViewModel(
@@ -330,6 +363,19 @@ private val sampleDecks = listOf(
         sourceUnit = "Unit 02",
         wordCount = 20
     )
+)
+
+private val sampleMixedDecks = sampleDecks + VocabularyDeck(
+    id = 3L,
+    name = "My Travel Words",
+    description = "Personal deck",
+    tags = listOf("travel", "personal"),
+    isPublic = false,
+    isSeed = false,
+    isReadOnly = false,
+    sourceName = null,
+    sourceUnit = null,
+    wordCount = 3
 )
 
 private val sampleCreatedDeck = VocabularyDeck(

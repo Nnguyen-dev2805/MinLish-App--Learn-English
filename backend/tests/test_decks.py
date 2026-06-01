@@ -30,6 +30,7 @@ def test_list_seed_decks_and_unit_items(client: TestClient) -> None:
     assert unit_01["is_seed"] is True
     assert unit_01["is_read_only"] is True
     assert unit_01["word_count"] == 20
+    assert unit_01["learned_count"] == 0
 
     items_response = client.get(f"/api/v1/decks/{unit_01['id']}/items", headers=headers)
 
@@ -41,6 +42,21 @@ def test_list_seed_decks_and_unit_items(client: TestClient) -> None:
     assert anxious["pronunciation"] == "['æŋ(k)ʃəs]"
     assert anxious["image_url"] == "/static/media/anki/book2/4000B2_601.jpg"
     assert anxious["word_audio_url"] == "/static/media/anki/book2/4000B2_anxious.mp3"
+
+    review_response = client.post(
+        "/api/v1/learning/reviews",
+        headers=headers,
+        json={
+            "vocabulary_item_id": anxious["id"],
+            "rating": "Good",
+            "response_ms": 1200,
+        },
+    )
+    assert review_response.status_code == 200
+
+    deck_detail_response = client.get(f"/api/v1/decks/{unit_01['id']}", headers=headers)
+    assert deck_detail_response.status_code == 200
+    assert deck_detail_response.json()["learned_count"] == 1
 
 
 def test_user_deck_and_item_crud(client: TestClient) -> None:
@@ -60,6 +76,7 @@ def test_user_deck_and_item_crud(client: TestClient) -> None:
     deck = create_deck_response.json()
     assert deck["name"] == "My IELTS Words"
     assert deck["word_count"] == 0
+    assert deck["learned_count"] == 0
     assert deck["is_public"] is False
     assert deck["is_seed"] is False
     assert deck["is_read_only"] is False

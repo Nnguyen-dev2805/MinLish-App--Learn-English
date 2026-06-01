@@ -8,6 +8,7 @@ object Routes {
     const val Home = "main/home"
     const val Decks = "main/decks"
     const val Learn = "main/learn"
+    const val LearnDeck = "main/learn/deck/{deckId}/{mode}"
     const val Progress = "main/progress"
     const val Profile = "main/profile"
     const val CreateDeck = "decks/create"
@@ -19,4 +20,5 @@ object Routes {
     fun deckDetail(deckId: Long): String = "decks/$deckId"
     fun addWord(deckId: Long): String = "decks/$deckId/words/add"
     fun editWord(deckId: Long, itemId: Long): String = "decks/$deckId/items/$itemId/edit"
+    fun learnDeck(deckId: Long, mode: String = "deck_all"): String = "main/learn/deck/$deckId/$mode"
 }

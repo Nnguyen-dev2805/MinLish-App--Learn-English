@@ -35,7 +35,22 @@ class LearningService:
             total_available=total_available,
         )
 
-    def get_review_cards(self, user: User) -> ReviewCardsResponse:
+    def get_review_cards(
+        self,
+        user: User,
+        deck_id: int | None = None,
+        mode: str | None = None,
+    ) -> ReviewCardsResponse:
+        if deck_id is not None:
+            requested_mode = mode or "deck_all"
+            if requested_mode != "deck_all":
+                raise ApiError(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Chế độ học deck không hợp lệ.",
+                    code="INVALID_LEARNING_MODE",
+                )
+            return self._get_all_cards_in_deck(user=user, deck_id=deck_id)
+
         now = self._utc_now()
         due_count = self._count_due_reviews(user, now)
         limit = max(user.daily_new_words or 10, 20)
@@ -74,6 +89,38 @@ class LearningService:
                 for item in new_items
             )
 
+        return ReviewCardsResponse(items=cards)
+
+    def _get_all_cards_in_deck(self, user: User, deck_id: int) -> ReviewCardsResponse:
+        deck = self.db.scalar(
+            select(Deck).where(Deck.id == deck_id, self._visible_deck_filter(user)),
+        )
+        if deck is None:
+            raise ApiError(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy deck để học.",
+                code="NOT_FOUND",
+            )
+
+        rows = self.db.execute(
+            select(VocabularyItem, UserWordProgress.id, UserWordProgress.due_at)
+            .outerjoin(
+                UserWordProgress,
+                (UserWordProgress.user_id == user.id)
+                & (UserWordProgress.vocabulary_item_id == VocabularyItem.id),
+            )
+            .where(VocabularyItem.deck_id == deck.id)
+            .order_by(VocabularyItem.anki_number.asc(), VocabularyItem.id.asc()),
+        ).all()
+
+        cards = [
+            self._review_card_response(
+                item=item,
+                is_new=progress_id is None,
+                due_at=due_at,
+            )
+            for item, progress_id, due_at in rows
+        ]
         return ReviewCardsResponse(items=cards)
 
     def submit_review(self, user: User, request: SubmitReviewRequest) -> SubmitReviewResponse:

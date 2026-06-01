@@ -24,6 +24,7 @@ class DeckResponse(BaseModel):
     source_name: str | None = None
     source_unit: str | None = None
     word_count: int
+    learned_count: int = 0
 
 
 class DeckListResponse(BaseModel):

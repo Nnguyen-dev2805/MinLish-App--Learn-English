@@ -459,6 +459,8 @@ fun AppNavGraph(
                     onBack = { viewModel.onEvent(FlashcardEvent.BackClicked) },
                     onRetry = { viewModel.onEvent(FlashcardEvent.Retry) },
                     onShowAnswer = { viewModel.onEvent(FlashcardEvent.ShowAnswer) },
+                    onPreviousCard = { viewModel.onEvent(FlashcardEvent.PreviousCard) },
+                    onNextCard = { viewModel.onEvent(FlashcardEvent.NextCard) },
                     onRating = { rating ->
                         viewModel.onEvent(FlashcardEvent.SubmitRating(rating))
                     }
@@ -515,6 +517,8 @@ fun AppNavGraph(
                     onBack = { viewModel.onEvent(FlashcardEvent.BackClicked) },
                     onRetry = { viewModel.onEvent(FlashcardEvent.Retry) },
                     onShowAnswer = { viewModel.onEvent(FlashcardEvent.ShowAnswer) },
+                    onPreviousCard = { viewModel.onEvent(FlashcardEvent.PreviousCard) },
+                    onNextCard = { viewModel.onEvent(FlashcardEvent.NextCard) },
                     onRating = { rating ->
                         viewModel.onEvent(FlashcardEvent.SubmitRating(rating))
                     }

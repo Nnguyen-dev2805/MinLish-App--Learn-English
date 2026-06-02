@@ -125,7 +125,7 @@ class WordEditorViewModel(
                         _uiState.update {
                             it.copy(
                                 isLoadingInitial = false,
-                                apiError = "Không tìm thấy từ vựng để chỉnh sửa."
+                                apiError = "Vocabulary word not found for editing."
                             )
                         }
                     } else {
@@ -143,8 +143,8 @@ class WordEditorViewModel(
 
     private fun submit() {
         val state = _uiState.value
-        val wordError = if (state.word.isBlank()) "Word không được để trống." else null
-        val meaningError = if (state.meaning.isBlank()) "Meaning không được để trống." else null
+        val wordError = if (state.word.isBlank()) "Word is required." else null
+        val meaningError = if (state.meaning.isBlank()) "Meaning is required." else null
         if (wordError != null || meaningError != null) {
             _uiState.update {
                 it.copy(wordError = wordError, meaningError = meaningError)
@@ -184,9 +184,9 @@ class WordEditorViewModel(
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isSaving = false) }
                     val message = if (state.itemId == null) {
-                        "Đã thêm từ mới."
+                        "Word added."
                     } else {
-                        "Đã cập nhật từ vựng."
+                        "Word updated."
                     }
                     _effects.emit(WordEditorEffect.NavigateBackWithRefresh(message))
                 }
@@ -207,7 +207,7 @@ class WordEditorViewModel(
             when (val result = deleteWordUseCase(editingItemId)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isDeleting = false) }
-                    _effects.emit(WordEditorEffect.NavigateBackWithRefresh("Đã xoá từ vựng."))
+                    _effects.emit(WordEditorEffect.NavigateBackWithRefresh("Word deleted."))
                 }
                 is AppResult.Failure -> {
                     _uiState.update {

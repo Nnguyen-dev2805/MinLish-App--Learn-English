@@ -89,7 +89,7 @@ fun ProfileSettingsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 ErrorStateView(
-                    title = "Không tải được Profile",
+                    title = "Unable to load profile",
                     message = uiState.errorMessage,
                     onRetry = onRetry
                 )
@@ -361,14 +361,14 @@ private fun NotificationSettingsCard(
         ToggleSettingRow(
             icon = Icons.Outlined.Alarm,
             title = "Due word notifications",
-            subtitle = "Nhắc khi đến giờ học hằng ngày.",
+            subtitle = "Remind me when it is time to study each day.",
             checked = uiState.pushEnabled,
             onCheckedChange = onPushEnabledChange
         )
         ToggleSettingRow(
             icon = Icons.Outlined.Email,
             title = "Email reminder",
-            subtitle = "Lưu preference trên backend; email thật phụ thuộc SMTP.",
+            subtitle = "Saved on the backend; real email sending depends on SMTP setup.",
             checked = uiState.emailEnabled,
             onCheckedChange = onEmailEnabledChange
         )
@@ -377,7 +377,7 @@ private fun NotificationSettingsCard(
             onValueChange = onDailyTimeChange,
             label = "Reminder time",
             modifier = Modifier.fillMaxWidth(),
-            supportingText = uiState.dailyTimeError ?: "Định dạng HH:mm, ví dụ 20:00",
+            supportingText = uiState.dailyTimeError ?: "Use HH:mm format, for example 20:00",
             isError = uiState.dailyTimeError != null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
@@ -426,7 +426,7 @@ private fun StreakCard() {
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Giữ lịch nhắc học để dashboard và streak cập nhật đều.",
+                    text = "Keep daily reminders on so your dashboard and streak stay active.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

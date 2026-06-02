@@ -10,37 +10,37 @@ sealed interface AppError {
     ) : AppError
 
     data class Unauthorized(
-        override val message: String = "Phiên đăng nhập đã hết hạn.",
+        override val message: String = "Your session has expired.",
         override val code: String? = "UNAUTHORIZED"
     ) : AppError
 
     data class Forbidden(
-        override val message: String = "Bạn không có quyền thực hiện thao tác này.",
+        override val message: String = "You do not have permission to perform this action.",
         override val code: String? = "FORBIDDEN"
     ) : AppError
 
     data class NotFound(
-        override val message: String = "Không tìm thấy dữ liệu.",
+        override val message: String = "Data not found.",
         override val code: String? = "NOT_FOUND"
     ) : AppError
 
     data class Network(
-        override val message: String = "Không thể kết nối máy chủ.",
+        override val message: String = "Unable to connect to the server.",
         override val code: String? = "NETWORK_ERROR"
     ) : AppError
 
     data class Server(
-        override val message: String = "Máy chủ đang gặp sự cố.",
+        override val message: String = "The server is currently unavailable.",
         override val code: String? = "SERVER_ERROR"
     ) : AppError
 
     data class Serialization(
-        override val message: String = "Dữ liệu trả về không đúng định dạng.",
+        override val message: String = "The response format is invalid.",
         override val code: String? = "SERIALIZATION_ERROR"
     ) : AppError
 
     data class Unknown(
-        override val message: String = "Đã có lỗi xảy ra.",
+        override val message: String = "Something went wrong.",
         override val code: String? = "UNKNOWN_ERROR"
     ) : AppError
 }

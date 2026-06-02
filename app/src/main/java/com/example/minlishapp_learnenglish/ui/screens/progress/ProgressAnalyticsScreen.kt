@@ -75,7 +75,7 @@ fun ProgressAnalyticsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 ErrorStateView(
-                    title = "Không tải được Progress",
+                    title = "Unable to load progress",
                     message = uiState.errorMessage,
                     onRetry = onRetry
                 )
@@ -199,7 +199,7 @@ private fun ZeroStateBanner() {
         ) {
             Icon(imageVector = Icons.Outlined.Insights, contentDescription = null)
             Text(
-                text = "Chưa có dữ liệu học. Học vài flashcard để biểu đồ bắt đầu cập nhật.",
+                text = "No learning data yet. Study a few flashcards to start updating the charts.",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -578,7 +578,7 @@ private fun LearningBreakdownFallback(
             progress = (retention.retentionRate / 100.0).toFloat().coerceIn(0f, 1f)
         )
         Text(
-            text = "Category breakdown chưa có backend support trong v1, nên phần này dùng số liệu tổng hợp hiện có.",
+            text = "Category breakdown is not supported by backend v1, so this section uses the available summary metrics.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

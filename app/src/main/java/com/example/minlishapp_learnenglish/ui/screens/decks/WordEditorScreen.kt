@@ -68,7 +68,7 @@ fun WordEditorScreen(
             when {
                 uiState.isLoadingInitial -> {
                     LoadingStateView(
-                        message = "Đang tải từ vựng...",
+                        message = "Loading vocabulary word...",
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(MinLishSpacing.screenMargin)
@@ -77,7 +77,7 @@ fun WordEditorScreen(
 
                 uiState.apiError != null && uiState.isEditMode && uiState.word.isBlank() -> {
                     ErrorStateView(
-                        title = "Không tải được từ vựng",
+                        title = "Unable to load vocabulary word",
                         message = uiState.apiError,
                         onRetry = onRetryLoad,
                         modifier = Modifier.padding(MinLishSpacing.screenMargin)
@@ -246,7 +246,7 @@ private fun WordEditorForm(
                 onValueChange = onPronunciationChange,
                 label = "Pronunciation",
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = "Audio upload chưa có trong backend v1"
+                supportingText = "Audio upload is not supported in backend v1"
             )
             MinLishTextField(
                 value = uiState.meaning,
@@ -283,7 +283,7 @@ private fun WordEditorForm(
                 label = "Related Words",
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
-                supportingText = "Tách bằng dấu phẩy hoặc xuống dòng"
+                supportingText = "Separate with commas or line breaks"
             )
             MinLishTextField(
                 value = uiState.note,
@@ -357,7 +357,7 @@ private fun StatsNote(isEditMode: Boolean) {
             )
             Text(
                 text = if (isEditMode) {
-                    "Các thay đổi sẽ được lưu vào deck cá nhân của bạn."
+                    "Changes will be saved to your personal deck."
                 } else {
                     "Adding this word will make your custom deck ready for future learning sessions."
                 },

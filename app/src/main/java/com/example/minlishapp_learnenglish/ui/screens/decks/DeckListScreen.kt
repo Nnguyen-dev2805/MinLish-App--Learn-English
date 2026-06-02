@@ -100,7 +100,7 @@ fun DeckListScreen(
                 uiState.isLoading -> {
                     item {
                         LoadingStateView(
-                            message = "Đang tải deck...",
+                            message = "Loading decks...",
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -108,7 +108,7 @@ fun DeckListScreen(
                 uiState.errorMessage != null && uiState.decks.isEmpty() -> {
                     item {
                         ErrorStateView(
-                            title = "Không tải được Decks",
+                            title = "Unable to load decks",
                             message = uiState.errorMessage,
                             onRetry = onRetry
                         )
@@ -117,16 +117,16 @@ fun DeckListScreen(
                 uiState.isEmpty -> {
                     item {
                         EmptyStateView(
-                            title = "Chưa có deck",
-                            message = "Tạo deck đầu tiên hoặc kiểm tra seed data backend."
+                            title = "No decks yet",
+                            message = "Create your first deck or check backend seed data."
                         )
                     }
                 }
                 uiState.isSearchEmpty -> {
                     item {
                         EmptyStateView(
-                            title = "Không tìm thấy deck",
-                            message = "Thử tìm bằng Unit, tag hoặc tên khác."
+                            title = "No matching decks",
+                            message = "Try searching by unit, tag, or another deck name."
                         )
                     }
                 }

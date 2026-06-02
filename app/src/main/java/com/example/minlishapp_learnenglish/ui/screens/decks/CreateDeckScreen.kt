@@ -212,7 +212,7 @@ private fun TagEditor(
                     label = "Add tag",
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    supportingText = "Nhấn Done hoặc nút + để thêm tag"
+                    supportingText = "Press Done or the + button to add a tag"
                 )
                 MinLishButton(
                     text = "Add Tag",

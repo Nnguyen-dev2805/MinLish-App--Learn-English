@@ -152,7 +152,7 @@ fun LoginScreen(
                                         onGoogleLogin(idToken)
                                     }
                                 } catch (e: Exception) {
-                                    onError(e.message ?: "Lỗi đăng nhập Google")
+                                    onError(e.message ?: "Google sign-in failed")
                                 }
                             }
                         },

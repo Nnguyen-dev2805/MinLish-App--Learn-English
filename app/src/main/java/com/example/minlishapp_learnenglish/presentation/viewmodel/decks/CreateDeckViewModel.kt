@@ -91,7 +91,7 @@ class CreateDeckViewModel(
     private fun submit() {
         val state = _uiState.value
         if (state.name.isBlank()) {
-            _uiState.update { it.copy(nameError = "Deck name không được để trống.") }
+            _uiState.update { it.copy(nameError = "Deck name is required.") }
             return
         }
 

@@ -79,25 +79,25 @@ class RegisterViewModel(
         var confirmErr: String? = null
 
         if (name.isBlank()) {
-            nameErr = "Họ tên không được để trống"
+            nameErr = "Full name is required"
             hasError = true
         }
 
         if (email.isBlank()) {
-            emailErr = "Email không được để trống"
+            emailErr = "Email is required"
             hasError = true
         } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailErr = "Email không đúng định dạng"
+            emailErr = "Enter a valid email address"
             hasError = true
         }
 
         if (password.length < 6) {
-            passErr = "Mật khẩu phải từ 6 ký tự trở lên"
+            passErr = "Password must be at least 6 characters"
             hasError = true
         }
 
         if (confirmPassword != password) {
-            confirmErr = "Mật khẩu xác nhận không khớp"
+            confirmErr = "Passwords do not match"
             hasError = true
         }
 

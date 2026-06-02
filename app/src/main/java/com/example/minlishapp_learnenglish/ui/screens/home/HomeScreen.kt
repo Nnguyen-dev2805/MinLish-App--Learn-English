@@ -318,7 +318,7 @@ private fun HomeErrorState(
                     modifier = Modifier.size(40.dp)
                 )
                 Text(
-                    text = "Không tải được Home Dashboard",
+                    text = "Unable to load Home Dashboard",
                     style = MaterialTheme.typography.titleLarge,
                     textAlign = TextAlign.Center
                 )
@@ -327,7 +327,7 @@ private fun HomeErrorState(
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
-                MinLishButton(text = "Thử lại", onClick = onRetry)
+                MinLishButton(text = "Try again", onClick = onRetry)
             }
         }
     }
@@ -357,18 +357,18 @@ private fun HomeEmptyState(
                 verticalArrangement = Arrangement.spacedBy(MinLishSpacing.md)
             ) {
                 Text(
-                    text = "Chưa có dữ liệu học",
+                    text = "No learning data yet",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Tạo deck hoặc bắt đầu học để dashboard có streak, activity và accuracy.",
+                    text = "Create a deck or start learning to populate streak, activity, and accuracy.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
-                MinLishButton(text = "Làm mới", onClick = onRefresh)
+                MinLishButton(text = "Refresh", onClick = onRefresh)
             }
         }
     }

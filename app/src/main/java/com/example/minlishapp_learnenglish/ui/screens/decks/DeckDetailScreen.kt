@@ -111,13 +111,13 @@ fun DeckDetailScreen(
             when {
                 uiState.isLoading -> {
                     item {
-                        LoadingStateView(message = "Đang tải deck...")
+                        LoadingStateView(message = "Loading deck...")
                     }
                 }
                 uiState.errorMessage != null && uiState.deck == null -> {
                     item {
                         ErrorStateView(
-                            title = "Không tải được Deck Detail",
+                            title = "Unable to load deck detail",
                             message = uiState.errorMessage,
                             onRetry = onRetry
                         )
@@ -153,8 +153,8 @@ fun DeckDetailScreen(
                     if (uiState.isEmpty) {
                         item {
                             EmptyStateView(
-                                title = "Deck chưa có từ",
-                                message = "Thêm từ sẽ được triển khai ở Phase 6."
+                                title = "No words in this deck",
+                                message = "Add a word to start building this deck."
                             )
                         }
                     } else {

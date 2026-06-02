@@ -56,15 +56,15 @@ class LoginViewModel(
         var passErr: String? = null
 
         if (email.isBlank()) {
-            emailErr = "Email không được để trống"
+            emailErr = "Email is required"
             hasError = true
         } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailErr = "Email không đúng định dạng"
+            emailErr = "Enter a valid email address"
             hasError = true
         }
 
         if (password.isBlank()) {
-            passErr = "Mật khẩu không được để trống"
+            passErr = "Password is required"
             hasError = true
         }
 

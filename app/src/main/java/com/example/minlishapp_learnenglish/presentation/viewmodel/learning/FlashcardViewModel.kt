@@ -51,6 +51,8 @@ data class FlashcardUiState(
 sealed interface FlashcardEvent {
     data object Retry : FlashcardEvent
     data object ShowAnswer : FlashcardEvent
+    data object PreviousCard : FlashcardEvent
+    data object NextCard : FlashcardEvent
     data object BackClicked : FlashcardEvent
     data class SubmitRating(val rating: ReviewRating) : FlashcardEvent
 }
@@ -84,6 +86,8 @@ class FlashcardViewModel(
         when (event) {
             FlashcardEvent.Retry -> loadCards()
             FlashcardEvent.ShowAnswer -> showAnswer()
+            FlashcardEvent.PreviousCard -> goToPreviousCard()
+            FlashcardEvent.NextCard -> goToNextCard()
             FlashcardEvent.BackClicked -> navigateBack()
             is FlashcardEvent.SubmitRating -> submitRating(event.rating)
         }
@@ -133,6 +137,36 @@ class FlashcardViewModel(
                 it
             } else {
                 it.copy(isAnswerVisible = true)
+            }
+        }
+    }
+
+    private fun goToPreviousCard() {
+        _uiState.update { state ->
+            if (state.isSubmitting || state.currentIndex <= 0) {
+                state
+            } else {
+                cardStartedAtMs = System.currentTimeMillis()
+                state.copy(
+                    currentIndex = state.currentIndex - 1,
+                    isAnswerVisible = false,
+                    errorMessage = null
+                )
+            }
+        }
+    }
+
+    private fun goToNextCard() {
+        _uiState.update { state ->
+            if (state.isSubmitting || state.cards.isEmpty() || state.currentIndex >= state.cards.lastIndex) {
+                state
+            } else {
+                cardStartedAtMs = System.currentTimeMillis()
+                state.copy(
+                    currentIndex = state.currentIndex + 1,
+                    isAnswerVisible = false,
+                    errorMessage = null
+                )
             }
         }
     }

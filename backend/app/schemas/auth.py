@@ -7,6 +7,8 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
     name: str = Field(min_length=1, max_length=120)
+    goal: str | None = Field(default=None, max_length=120)
+    level: str | None = Field(default=None, max_length=60)
 
 
 class LoginRequest(BaseModel):

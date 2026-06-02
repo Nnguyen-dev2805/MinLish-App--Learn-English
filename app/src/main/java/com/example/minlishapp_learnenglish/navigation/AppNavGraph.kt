@@ -24,6 +24,12 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.AuthEffec
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.OnboardingViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SplashViewModel
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterViewModel
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterEffect
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterEvent
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupViewModel
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupEvent
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckViewModel
@@ -50,7 +56,9 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.Profil
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileViewModel
 import com.example.minlishapp_learnenglish.ui.screens.auth.LoginScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.OnboardingScreen
+import com.example.minlishapp_learnenglish.ui.screens.auth.SetupScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SplashScreen
+import com.example.minlishapp_learnenglish.ui.screens.auth.RegisterScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.CreateDeckScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckDetailScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckListScreen
@@ -114,7 +122,10 @@ fun AppNavGraph(
         composable(Routes.Login) {
             val viewModel: LoginViewModel = viewModel(
                 factory = viewModelFactory {
-                    LoginViewModel(appContainer.googleLoginUseCase)
+                    LoginViewModel(
+                        loginUseCase = appContainer.loginUseCase,
+                        googleLoginUseCase = appContainer.googleLoginUseCase
+                    )
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
@@ -132,8 +143,89 @@ fun AppNavGraph(
             LoginScreen(
                 uiState = uiState,
                 snackbarHostState = snackbarHostState,
+                onEmailChange = viewModel::onEmailChange,
+                onPasswordChange = viewModel::onPasswordChange,
+                onLogin = viewModel::loginWithEmailPassword,
+                onSignUp = viewModel::navigateRegister,
                 onGoogleLogin = viewModel::googleLogin,
                 onError = viewModel::showError
+            )
+        }
+        composable(Routes.Register) {
+            val viewModel: RegisterViewModel = viewModel(
+                factory = viewModelFactory {
+                    RegisterViewModel(appContainer.registerUseCase)
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        is RegisterEffect.NavigateSetup -> {
+                            navController.navigate(Routes.Setup + "/${java.net.URLEncoder.encode(effect.userName, "UTF-8")}") {
+                                popUpTo(Routes.Register) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                        RegisterEffect.NavigateLogin -> navController.popBackStack()
+                        is RegisterEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                    }
+                }
+            }
+
+            RegisterScreen(
+                uiState = uiState,
+                snackbarHostState = snackbarHostState,
+                onNameChange = { value -> viewModel.onEvent(RegisterEvent.NameChanged(value)) },
+                onEmailChange = { value -> viewModel.onEvent(RegisterEvent.EmailChanged(value)) },
+                onPasswordChange = { value -> viewModel.onEvent(RegisterEvent.PasswordChanged(value)) },
+                onConfirmPasswordChange = { value -> viewModel.onEvent(RegisterEvent.ConfirmPasswordChanged(value)) },
+                onSubmit = { viewModel.onEvent(RegisterEvent.Submit) },
+                onBack = { viewModel.onEvent(RegisterEvent.BackToLoginClicked) }
+            )
+        }
+        composable(
+            route = Routes.Setup + "/{userName}",
+            arguments = listOf(navArgument("userName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userName = java.net.URLDecoder.decode(
+                backStackEntry.arguments?.getString("userName") ?: "",
+                "UTF-8"
+            )
+            val viewModel: SetupViewModel = viewModel(
+                factory = viewModelFactory {
+                    SetupViewModel(
+                        updateProfileUseCase = appContainer.updateProfileUseCase,
+                        userName = userName
+                    )
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        SetupEffect.NavigateHome -> {
+                            navController.navigate(Routes.Home) {
+                                popUpTo(Routes.Login) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                        is SetupEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                    }
+                }
+            }
+
+            SetupScreen(
+                uiState = uiState,
+                snackbarHostState = snackbarHostState,
+                onGoalChange = { value -> viewModel.onEvent(SetupEvent.GoalChanged(value)) },
+                onLevelChange = { value -> viewModel.onEvent(SetupEvent.LevelChanged(value)) },
+                onSubmit = { viewModel.onEvent(SetupEvent.Submit) },
+                onSkip = { viewModel.onEvent(SetupEvent.Skip) }
             )
         }
 
@@ -643,6 +735,7 @@ private fun NavHostController.handleAuthEffect(effect: AuthEffect, currentRoute:
         AuthEffect.NavigateHome -> navigateReplacingCurrentAuth(currentRoute, Routes.Home)
         AuthEffect.NavigateOnboarding -> navigateReplacingCurrentAuth(currentRoute, Routes.Onboarding)
         AuthEffect.NavigateLogin -> navigateReplacingCurrentAuth(currentRoute, Routes.Login)
+        AuthEffect.NavigateRegister -> navigate(Routes.Register)
         is AuthEffect.ShowSnackbar -> Unit
     }
 }

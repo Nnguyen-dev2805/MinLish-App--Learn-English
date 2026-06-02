@@ -31,6 +31,8 @@ fun MinLishTextField(
     singleLine: Boolean = true,
     supportingText: String? = null,
     isError: Boolean = false,
+    enabled: Boolean = true,
+    leadingIcon: @Composable (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ) {
     OutlinedTextField(
@@ -40,6 +42,8 @@ fun MinLishTextField(
         label = { Text(label) },
         singleLine = singleLine,
         isError = isError,
+        enabled = enabled,
+        leadingIcon = leadingIcon,
         supportingText = supportingText?.let { { Text(it) } },
         keyboardOptions = keyboardOptions,
         shape = RoundedCornerShape(12.dp),
@@ -59,11 +63,13 @@ fun MinLishPasswordField(
     label: String,
     modifier: Modifier = Modifier,
     supportingText: String? = null,
-    isError: Boolean = false
+    isError: Boolean = false,
+    enabled: Boolean = true
 ) {
     var visible by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = value,
+        enabled = enabled,
         onValueChange = onValueChange,
         modifier = modifier,
         label = { Text(label) },

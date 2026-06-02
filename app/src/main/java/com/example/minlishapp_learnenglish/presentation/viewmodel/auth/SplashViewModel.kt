@@ -33,7 +33,6 @@ class SplashViewModel(
             _effects.emit(
                 when (destination) {
                     SessionDestination.Home -> AuthEffect.NavigateHome
-                    SessionDestination.Onboarding -> AuthEffect.NavigateOnboarding
                     SessionDestination.Login -> AuthEffect.NavigateLogin
                 }
             )

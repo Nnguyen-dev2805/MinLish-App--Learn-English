@@ -22,7 +22,6 @@ import com.example.minlishapp_learnenglish.core.AppContainer
 import com.example.minlishapp_learnenglish.presentation.viewmodel.viewModelFactory
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.AuthEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.OnboardingViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SplashViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterEffect
@@ -55,7 +54,6 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.Profil
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileViewModel
 import com.example.minlishapp_learnenglish.ui.screens.auth.LoginScreen
-import com.example.minlishapp_learnenglish.ui.screens.auth.OnboardingScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SetupScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SplashScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.RegisterScreen
@@ -100,24 +98,6 @@ fun AppNavGraph(
             }
 
             SplashScreen(uiState = uiState)
-        }
-        composable(Routes.Onboarding) {
-            val viewModel: OnboardingViewModel = viewModel(
-                factory = viewModelFactory {
-                    OnboardingViewModel(appContainer.setOnboardingSeenUseCase)
-                }
-            )
-
-            LaunchedEffect(viewModel) {
-                viewModel.effects.collect { effect ->
-                    navController.handleAuthEffect(effect, currentRoute = Routes.Onboarding)
-                }
-            }
-
-            OnboardingScreen(
-                onGetStarted = viewModel::getStarted,
-                onLogin = viewModel::login
-            )
         }
         composable(Routes.Login) {
             val viewModel: LoginViewModel = viewModel(
@@ -730,7 +710,6 @@ private fun WordEditorRoute(
 private fun NavHostController.handleAuthEffect(effect: AuthEffect, currentRoute: String) {
     when (effect) {
         AuthEffect.NavigateHome -> navigateReplacingCurrentAuth(currentRoute, Routes.Home)
-        AuthEffect.NavigateOnboarding -> navigateReplacingCurrentAuth(currentRoute, Routes.Onboarding)
         AuthEffect.NavigateLogin -> navigateReplacingCurrentAuth(currentRoute, Routes.Login)
         AuthEffect.NavigateRegister -> navigate(Routes.Register)
         is AuthEffect.ShowSnackbar -> Unit

@@ -238,7 +238,16 @@ def _auth_headers(client: TestClient, email: str = "learner@example.com") -> dic
         },
     )
     assert response.status_code == 200
+    _verify_user_in_db(client, email)
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+def _verify_user_in_db(client: TestClient, email: str) -> None:
+    with _session(client) as db:
+        user = db.scalar(select(User).where(User.email == email))
+        assert user is not None
+        user.email_verified = True
+        db.commit()
 
 
 def _user_id_for_email(client: TestClient, email: str) -> int:

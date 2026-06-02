@@ -1,4 +1,88 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from app.models.user import User
+
+
+def test_verify_email_with_otp(client: TestClient, monkeypatch) -> None:
+    from app.services.auth_service import AuthService
+
+    monkeypatch.setattr(AuthService, "_generate_otp", staticmethod(lambda: "123456"))
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "verify@example.com",
+            "password": "secret123",
+            "name": "Verify Me",
+        },
+    )
+    assert register_response.status_code == 200
+
+    verify_response = client.post(
+        "/api/v1/auth/verify-email",
+        json={"email": "verify@example.com", "otp": "123456"},
+    )
+
+    assert verify_response.status_code == 200
+    assert verify_response.json()["access_token"]
+
+
+def test_verify_email_rejects_wrong_otp(client: TestClient, monkeypatch) -> None:
+    from app.services.auth_service import AuthService
+
+    monkeypatch.setattr(AuthService, "_generate_otp", staticmethod(lambda: "123456"))
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "wrong-otp@example.com",
+            "password": "secret123",
+            "name": "Wrong Otp",
+        },
+    )
+
+    response = client.post(
+        "/api/v1/auth/verify-email",
+        json={"email": "wrong-otp@example.com", "otp": "000000"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "INVALID_EMAIL_OTP"
+
+
+def test_forgot_password_and_reset_password(client: TestClient, monkeypatch) -> None:
+    from app.services.auth_service import AuthService
+
+    monkeypatch.setattr(AuthService, "_generate_otp", staticmethod(lambda: "654321"))
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "reset@example.com",
+            "password": "oldpass123",
+            "name": "Reset Me",
+        },
+    )
+
+    forgot_response = client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": "reset@example.com"},
+    )
+    assert forgot_response.status_code == 200
+
+    reset_response = client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "email": "reset@example.com",
+            "otp": "654321",
+            "new_password": "newpass123",
+        },
+    )
+    assert reset_response.status_code == 200
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset@example.com", "password": "newpass123"},
+    )
+    assert login_response.status_code == 200
 
 
 def test_register_login_refresh_me_update_and_logout(client: TestClient) -> None:
@@ -34,6 +118,7 @@ def test_register_login_refresh_me_update_and_logout(client: TestClient) -> None
     )
     assert duplicate_response.status_code == 400
     assert duplicate_response.json()["code"] == "EMAIL_ALREADY_EXISTS"
+    _verify_user_in_db(client, "learner@example.com")
 
     login_response = client.post(
         "/api/v1/auth/login",
@@ -128,3 +213,12 @@ def test_google_login_reports_not_configured(client: TestClient, monkeypatch) ->
         }
     finally:
         get_settings.cache_clear()
+
+
+def _verify_user_in_db(client: TestClient, email: str) -> None:
+    session_local = client.app.state.testing_session_local
+    with session_local() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        assert user is not None
+        user.email_verified = True
+        db.commit()

@@ -6,7 +6,6 @@ import com.example.minlishapp_learnenglish.core.notification.WorkManagerReminder
 import com.example.minlishapp_learnenglish.core.network.RetrofitFactory
 import com.example.minlishapp_learnenglish.core.storage.EncryptedTokenStorage
 import com.example.minlishapp_learnenglish.core.storage.TokenStorage
-import com.example.minlishapp_learnenglish.core.storage.UserPreferencesStorage
 import com.example.minlishapp_learnenglish.data.remote.api.AnalyticsApi
 import com.example.minlishapp_learnenglish.data.remote.api.AuthApi
 import com.example.minlishapp_learnenglish.data.remote.api.DeckApi
@@ -23,9 +22,12 @@ import com.example.minlishapp_learnenglish.data.repository.LearningRepository
 import com.example.minlishapp_learnenglish.data.repository.DefaultNotificationRepository
 import com.example.minlishapp_learnenglish.data.repository.NotificationRepository
 import com.example.minlishapp_learnenglish.domain.usecase.auth.CheckSessionUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.auth.ForgotPasswordUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.auth.LoginUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.auth.RegisterUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.SetOnboardingSeenUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.auth.ResendVerificationOtpUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.auth.ResetPasswordUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.auth.VerifyEmailUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateDeckUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateWordUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.DeleteWordUseCase
@@ -48,7 +50,6 @@ class AppContainer(context: Context) {
     private val appContext = context.applicationContext
 
     val tokenStorage: TokenStorage = EncryptedTokenStorage(appContext)
-    val userPreferencesStorage = UserPreferencesStorage(appContext)
 
     val moshi: Moshi = RetrofitFactory.createMoshi()
 
@@ -97,13 +98,15 @@ class AppContainer(context: Context) {
     val reminderScheduler: ReminderScheduler = WorkManagerReminderScheduler(appContext)
 
     val checkSessionUseCase = CheckSessionUseCase(
-        tokenStorage = tokenStorage,
-        userPreferencesStorage = userPreferencesStorage
+        tokenStorage = tokenStorage
     )
-    val setOnboardingSeenUseCase = SetOnboardingSeenUseCase(userPreferencesStorage)
     val loginUseCase = LoginUseCase(authRepository)
     val googleLoginUseCase = com.example.minlishapp_learnenglish.domain.usecase.auth.GoogleLoginUseCase(authRepository)
     val registerUseCase = RegisterUseCase(authRepository)
+    val verifyEmailUseCase = VerifyEmailUseCase(authRepository)
+    val resendVerificationOtpUseCase = ResendVerificationOtpUseCase(authRepository)
+    val forgotPasswordUseCase = ForgotPasswordUseCase(authRepository)
+    val resetPasswordUseCase = ResetPasswordUseCase(authRepository)
     val loadHomeUseCase = LoadHomeUseCase(
         authRepository = authRepository,
         analyticsRepository = analyticsRepository,

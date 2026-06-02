@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Image
@@ -49,6 +50,7 @@ import com.example.minlishapp_learnenglish.ui.components.EmptyStateView
 import com.example.minlishapp_learnenglish.ui.components.ErrorStateView
 import com.example.minlishapp_learnenglish.ui.components.LoadingStateView
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton
+import com.example.minlishapp_learnenglish.ui.components.MinLishOutlinedButton
 import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
 
 @Composable
@@ -57,6 +59,8 @@ fun FlashcardLearningScreen(
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onShowAnswer: () -> Unit,
+    onPreviousCard: () -> Unit,
+    onNextCard: () -> Unit,
     onRating: (ReviewRating) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -74,7 +78,7 @@ fun FlashcardLearningScreen(
                 contentAlignment = Alignment.Center
             ) {
                 ErrorStateView(
-                    title = "Không tải được bài học",
+                    title = "Unable to load lesson",
                     message = uiState.errorMessage,
                     onRetry = onRetry
                 )
@@ -105,6 +109,8 @@ fun FlashcardLearningScreen(
                 uiState = uiState,
                 onBack = onBack,
                 onShowAnswer = onShowAnswer,
+                onPreviousCard = onPreviousCard,
+                onNextCard = onNextCard,
                 onRating = onRating,
                 modifier = modifier
             )
@@ -117,6 +123,8 @@ private fun FlashcardContent(
     uiState: FlashcardUiState,
     onBack: () -> Unit,
     onShowAnswer: () -> Unit,
+    onPreviousCard: () -> Unit,
+    onNextCard: () -> Unit,
     onRating: (ReviewRating) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -149,6 +157,12 @@ private fun FlashcardContent(
                     .aspectRatio(4f / 5f)
             )
         }
+        CardNavigationRow(
+            canGoPrevious = uiState.currentIndex > 0 && !uiState.isSubmitting,
+            canGoNext = uiState.currentIndex < uiState.cards.lastIndex && !uiState.isSubmitting,
+            onPreviousCard = onPreviousCard,
+            onNextCard = onNextCard
+        )
         FlashcardActions(
             isAnswerVisible = uiState.isAnswerVisible,
             isSubmitting = uiState.isSubmitting,
@@ -164,6 +178,34 @@ private fun FlashcardContent(
                 textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+@Composable
+private fun CardNavigationRow(
+    canGoPrevious: Boolean,
+    canGoNext: Boolean,
+    onPreviousCard: () -> Unit,
+    onNextCard: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.sm)
+    ) {
+        MinLishOutlinedButton(
+            text = "Previous",
+            icon = Icons.AutoMirrored.Outlined.ArrowBack,
+            onClick = onPreviousCard,
+            enabled = canGoPrevious,
+            modifier = Modifier.weight(1f)
+        )
+        MinLishOutlinedButton(
+            text = "Next",
+            icon = Icons.AutoMirrored.Outlined.ArrowForward,
+            onClick = onNextCard,
+            enabled = canGoNext,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 

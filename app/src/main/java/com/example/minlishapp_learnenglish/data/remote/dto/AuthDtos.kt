@@ -36,6 +36,29 @@ data class LogoutRequestDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class VerifyEmailRequestDto(
+    @param:Json(name = "email") val email: String,
+    @param:Json(name = "otp") val otp: String
+)
+
+@JsonClass(generateAdapter = true)
+data class ResendVerificationOtpRequestDto(
+    @param:Json(name = "email") val email: String
+)
+
+@JsonClass(generateAdapter = true)
+data class ForgotPasswordRequestDto(
+    @param:Json(name = "email") val email: String
+)
+
+@JsonClass(generateAdapter = true)
+data class ResetPasswordRequestDto(
+    @param:Json(name = "email") val email: String,
+    @param:Json(name = "otp") val otp: String,
+    @param:Json(name = "new_password") val newPassword: String
+)
+
+@JsonClass(generateAdapter = true)
 data class UpdateUserRequestDto(
     @param:Json(name = "name") val name: String? = null,
     @param:Json(name = "goal") val goal: String? = null,
@@ -53,6 +76,11 @@ data class AuthResponseDto(
 @JsonClass(generateAdapter = true)
 data class RefreshResponseDto(
     @param:Json(name = "access_token") val accessToken: String
+)
+
+@JsonClass(generateAdapter = true)
+data class MessageResponseDto(
+    @param:Json(name = "message") val message: String
 )
 
 @JsonClass(generateAdapter = true)

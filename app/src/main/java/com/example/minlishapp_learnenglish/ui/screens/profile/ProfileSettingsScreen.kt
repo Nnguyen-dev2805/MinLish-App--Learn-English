@@ -21,10 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Alarm
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
@@ -89,7 +86,7 @@ fun ProfileSettingsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 ErrorStateView(
-                    title = "Không tải được Profile",
+                    title = "Unable to load profile",
                     message = uiState.errorMessage,
                     onRetry = onRetry
                 )
@@ -361,14 +358,14 @@ private fun NotificationSettingsCard(
         ToggleSettingRow(
             icon = Icons.Outlined.Alarm,
             title = "Due word notifications",
-            subtitle = "Nhắc khi đến giờ học hằng ngày.",
+            subtitle = "Remind me when it is time to study each day.",
             checked = uiState.pushEnabled,
             onCheckedChange = onPushEnabledChange
         )
         ToggleSettingRow(
             icon = Icons.Outlined.Email,
             title = "Email reminder",
-            subtitle = "Lưu preference trên backend; email thật phụ thuộc SMTP.",
+            subtitle = "Saved on the backend; real email sending depends on SMTP setup.",
             checked = uiState.emailEnabled,
             onCheckedChange = onEmailEnabledChange
         )
@@ -377,7 +374,7 @@ private fun NotificationSettingsCard(
             onValueChange = onDailyTimeChange,
             label = "Reminder time",
             modifier = Modifier.fillMaxWidth(),
-            supportingText = uiState.dailyTimeError ?: "Định dạng HH:mm, ví dụ 20:00",
+            supportingText = uiState.dailyTimeError ?: "Use HH:mm format, for example 20:00",
             isError = uiState.dailyTimeError != null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
@@ -426,7 +423,7 @@ private fun StreakCard() {
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Giữ lịch nhắc học để dashboard và streak cập nhật đều.",
+                    text = "Keep daily reminders on so your dashboard and streak stay active.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -439,28 +436,13 @@ private fun AccountCard(
     isLoggingOut: Boolean,
     onLogout: () -> Unit
 ) {
-    SettingsSectionCard(
-        title = "Support",
-        icon = Icons.Outlined.Settings
-    ) {
-        StaticSettingRow(
-            icon = Icons.Outlined.Edit,
-            title = "Profile data",
-            subtitle = "Name, goal and level are synced with FastAPI."
-        )
-        StaticSettingRow(
-            icon = Icons.Outlined.ErrorOutline,
-            title = "App version",
-            subtitle = "Course project build"
-        )
-        MinLishOutlinedButton(
-            text = if (isLoggingOut) "Logging out..." else "Log out",
-            icon = Icons.AutoMirrored.Outlined.Logout,
-            onClick = onLogout,
-            enabled = !isLoggingOut,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
+    MinLishOutlinedButton(
+        text = if (isLoggingOut) "Logging out..." else "Log out",
+        icon = Icons.AutoMirrored.Outlined.Logout,
+        onClick = onLogout,
+        enabled = !isLoggingOut,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -506,21 +488,6 @@ private fun ToggleSettingRow(
 ) {
     SettingRowShell(icon = icon, title = title, subtitle = subtitle) {
         Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-@Composable
-private fun StaticSettingRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String
-) {
-    SettingRowShell(icon = icon, title = title, subtitle = subtitle) {
-        Icon(
-            imageVector = Icons.Outlined.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 

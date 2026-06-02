@@ -40,12 +40,12 @@ object ErrorMapper {
 
     private fun defaultMessageFor(statusCode: Int): String {
         return when (statusCode) {
-            400, 422 -> "Dữ liệu nhập chưa hợp lệ."
-            401 -> "Phiên đăng nhập đã hết hạn."
-            403 -> "Bạn không có quyền thực hiện thao tác này."
-            404 -> "Không tìm thấy dữ liệu."
-            in 500..599 -> "Máy chủ đang gặp sự cố."
-            else -> "Đã có lỗi xảy ra."
+            400, 422 -> "The input data is invalid."
+            401 -> "Your session has expired."
+            403 -> "You do not have permission to perform this action."
+            404 -> "Data not found."
+            in 500..599 -> "The server is currently unavailable."
+            else -> "Something went wrong."
         }
     }
 }

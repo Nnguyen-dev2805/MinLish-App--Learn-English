@@ -106,7 +106,7 @@ class DeckDetailViewModel(
     private fun handleAddWord() {
         val deck = _uiState.value.deck
         if (deck == null || deck.isReadOnly || deck.isSeed) {
-            emitEffect(DeckDetailEffect.ShowSnackbar("Seed deck là dữ liệu chỉ đọc."))
+            emitEffect(DeckDetailEffect.ShowSnackbar("Seed decks are read-only."))
             return
         }
         emitEffect(DeckDetailEffect.NavigateAddWord(deck.id))
@@ -115,7 +115,7 @@ class DeckDetailViewModel(
     private fun handleEditWord(wordId: Long) {
         val deck = _uiState.value.deck
         if (deck == null || deck.isReadOnly || deck.isSeed) {
-            emitEffect(DeckDetailEffect.ShowSnackbar("Seed deck là dữ liệu chỉ đọc."))
+            emitEffect(DeckDetailEffect.ShowSnackbar("Seed decks are read-only."))
             return
         }
         emitEffect(DeckDetailEffect.NavigateEditWord(deck.id, wordId))
@@ -130,7 +130,7 @@ class DeckDetailViewModel(
     fun importExcel(fileName: String, fileBytes: ByteArray) {
         val deck = _uiState.value.deck
         if (deck == null || deck.isReadOnly || deck.isSeed) {
-            emitEffect(DeckDetailEffect.ShowSnackbar("Seed deck là dữ liệu chỉ đọc."))
+            emitEffect(DeckDetailEffect.ShowSnackbar("Seed decks are read-only."))
             return
         }
         
@@ -138,12 +138,12 @@ class DeckDetailViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             when (val result = importDeckItemsUseCase(deckId, fileName, fileBytes)) {
                 is AppResult.Success -> {
-                    emitEffect(DeckDetailEffect.ShowSnackbar("Đã nhập thành công ${result.data} từ vựng."))
+                    emitEffect(DeckDetailEffect.ShowSnackbar("Imported ${result.data} words successfully."))
                     loadDeck() // Reload to show new words
                 }
                 is AppResult.Failure -> {
                     _uiState.update { it.copy(isLoading = false, errorMessage = result.error.message) }
-                    emitEffect(DeckDetailEffect.ShowSnackbar("Lỗi nhập dữ liệu: ${result.error.message}"))
+                    emitEffect(DeckDetailEffect.ShowSnackbar("Import failed: ${result.error.message}"))
                 }
             }
         }

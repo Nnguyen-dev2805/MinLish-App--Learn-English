@@ -38,4 +38,10 @@ def get_current_user(
             detail="Người dùng không tồn tại.",
             code="UNAUTHORIZED",
         )
+    if not user.email_verified:
+        raise ApiError(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email before using MinLish.",
+            code="EMAIL_NOT_VERIFIED",
+        )
     return user

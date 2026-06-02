@@ -49,6 +49,7 @@ fun LoginScreen(
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
     onSignUp: () -> Unit,
+    onForgotPassword: () -> Unit,
     onGoogleLogin: (String) -> Unit,
     onError: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -128,6 +129,18 @@ fun LoginScreen(
                         enabled = !uiState.isLoading
                     )
 
+                    TextButton(
+                        onClick = onForgotPassword,
+                        enabled = !uiState.isLoading,
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text(
+                            text = "Forgot Password?",
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // Log In Button
@@ -152,7 +165,7 @@ fun LoginScreen(
                                         onGoogleLogin(idToken)
                                     }
                                 } catch (e: Exception) {
-                                    onError(e.message ?: "Lỗi đăng nhập Google")
+                                    onError(e.message ?: "Google sign-in failed")
                                 }
                             }
                         },

@@ -5,11 +5,15 @@ import com.example.minlishapp_learnenglish.core.result.map
 import com.example.minlishapp_learnenglish.core.storage.TokenStorage
 import com.example.minlishapp_learnenglish.data.remote.api.AuthApi
 import com.example.minlishapp_learnenglish.data.remote.dto.GoogleLoginRequestDto
+import com.example.minlishapp_learnenglish.data.remote.dto.ForgotPasswordRequestDto
 import com.example.minlishapp_learnenglish.data.remote.dto.LoginRequestDto
 import com.example.minlishapp_learnenglish.data.remote.dto.LogoutRequestDto
 import com.example.minlishapp_learnenglish.data.remote.dto.RefreshRequestDto
+import com.example.minlishapp_learnenglish.data.remote.dto.ResendVerificationOtpRequestDto
 import com.example.minlishapp_learnenglish.data.remote.dto.RegisterRequestDto
+import com.example.minlishapp_learnenglish.data.remote.dto.ResetPasswordRequestDto
 import com.example.minlishapp_learnenglish.data.remote.dto.UpdateUserRequestDto
+import com.example.minlishapp_learnenglish.data.remote.dto.VerifyEmailRequestDto
 import com.example.minlishapp_learnenglish.data.remote.dto.toDomain
 import com.example.minlishapp_learnenglish.domain.model.AuthSession
 import com.example.minlishapp_learnenglish.domain.model.User
@@ -27,6 +31,10 @@ interface AuthRepository {
     suspend fun loginWithGoogle(idToken: String): AppResult<AuthSession>
     suspend fun refresh(refreshToken: String): AppResult<String>
     suspend fun logout(refreshToken: String): AppResult<Unit>
+    suspend fun verifyEmail(email: String, otp: String): AppResult<AuthSession>
+    suspend fun resendVerificationOtp(email: String): AppResult<String>
+    suspend fun forgotPassword(email: String): AppResult<String>
+    suspend fun resetPassword(email: String, otp: String, newPassword: String): AppResult<String>
     suspend fun getMe(): AppResult<User>
     suspend fun updateMe(
         name: String? = null,
@@ -54,7 +62,8 @@ class DefaultAuthRepository(
         goal: String?,
         level: String?
     ): AppResult<AuthSession> {
-        return saveSessionResult {
+        tokenStorage.clearTokens()
+        return safeApiCall(moshi) {
             authApi.register(
                 RegisterRequestDto(
                     email = email,
@@ -64,7 +73,7 @@ class DefaultAuthRepository(
                     level = level
                 )
             )
-        }
+        }.map { it.toDomain() }
     }
 
     override suspend fun loginWithGoogle(idToken: String): AppResult<AuthSession> {
@@ -91,6 +100,47 @@ class DefaultAuthRepository(
             tokenStorage.clearTokens()
         }
         return result
+    }
+
+    override suspend fun verifyEmail(email: String, otp: String): AppResult<AuthSession> {
+        return safeApiCall(moshi) {
+            authApi.verifyEmail(VerifyEmailRequestDto(email = email, otp = otp))
+        }.map { response ->
+            response.toDomain().also { session ->
+                tokenStorage.saveTokens(
+                    accessToken = session.accessToken,
+                    refreshToken = session.refreshToken
+                )
+            }
+        }
+    }
+
+    override suspend fun resendVerificationOtp(email: String): AppResult<String> {
+        return safeApiCall(moshi) {
+            authApi.resendVerificationOtp(ResendVerificationOtpRequestDto(email = email)).message
+        }
+    }
+
+    override suspend fun forgotPassword(email: String): AppResult<String> {
+        return safeApiCall(moshi) {
+            authApi.forgotPassword(ForgotPasswordRequestDto(email = email)).message
+        }
+    }
+
+    override suspend fun resetPassword(
+        email: String,
+        otp: String,
+        newPassword: String
+    ): AppResult<String> {
+        return safeApiCall(moshi) {
+            authApi.resetPassword(
+                ResetPasswordRequestDto(
+                    email = email,
+                    otp = otp,
+                    newPassword = newPassword
+                )
+            ).message
+        }
     }
 
     override suspend fun getMe(): AppResult<User> {

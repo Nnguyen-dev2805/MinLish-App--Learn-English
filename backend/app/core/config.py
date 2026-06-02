@@ -24,6 +24,20 @@ class Settings(BaseSettings):
         default="",
         validation_alias="GOOGLE_CLIENT_ID",
     )
+    smtp_host: str = Field(default="", validation_alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, validation_alias="SMTP_PORT")
+    smtp_username: str = Field(default="", validation_alias="SMTP_USERNAME")
+    smtp_password: str = Field(default="", validation_alias="SMTP_PASSWORD")
+    smtp_from_email: str = Field(default="", validation_alias="SMTP_FROM_EMAIL")
+    smtp_from_name: str = Field(default="MinLish Vocabulary App", validation_alias="SMTP_FROM_NAME")
+    email_reminder_scheduler_enabled: bool = Field(
+        default=False,
+        validation_alias="EMAIL_REMINDER_SCHEDULER_ENABLED",
+    )
+    email_reminder_check_seconds: int = Field(
+        default=60,
+        validation_alias="EMAIL_REMINDER_CHECK_SECONDS",
+    )
     static_dir: str = Field(default="static", validation_alias="STATIC_DIR")
     backend_cors_origins: list[str] = Field(default_factory=list)
 

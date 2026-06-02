@@ -66,7 +66,7 @@ fun ErrorStateView(
         modifier = modifier
     ) {
         MinLishTonalButton(
-            text = "Thử lại",
+            text = "Try again",
             icon = Icons.Outlined.Refresh,
             onClick = onRetry
         )

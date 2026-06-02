@@ -1,9 +1,39 @@
+import asyncio
+from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
+from app.services.email_reminder_scheduler import EmailReminderScheduler
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    settings = get_settings()
+    scheduler_task: asyncio.Task[None] | None = None
+    scheduler: EmailReminderScheduler | None = None
+
+    if settings.email_reminder_scheduler_enabled:
+        scheduler = EmailReminderScheduler(
+            check_seconds=settings.email_reminder_check_seconds,
+        )
+        scheduler_task = asyncio.create_task(scheduler.run())
+
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.stop()
+        if scheduler_task is not None:
+            scheduler_task.cancel()
+            try:
+                await scheduler_task
+            except asyncio.CancelledError:
+                pass
 
 
 def create_app() -> FastAPI:
@@ -15,6 +45,7 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        lifespan=lifespan,
     )
 
     register_exception_handlers(app)

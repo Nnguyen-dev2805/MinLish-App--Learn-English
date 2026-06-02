@@ -64,7 +64,7 @@ fun SplashScreen(
                 trackColor = MaterialTheme.colorScheme.secondaryContainer
             )
             Text(
-                text = if (uiState.isChecking) "Đang kiểm tra phiên đăng nhập..." else "Sẵn sàng",
+                text = if (uiState.isChecking) "Checking your session..." else "Ready",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

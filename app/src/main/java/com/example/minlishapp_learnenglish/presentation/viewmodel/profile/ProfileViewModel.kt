@@ -147,7 +147,7 @@ class ProfileViewModel(
                     val settings = settingsResult.data
                     _uiState.value = profileResult.data.toUiState(settings)
                     reminderScheduler.schedule(settings)
-                    _effects.emit(ProfileEffect.ShowSnackbar("Đã làm mới hồ sơ."))
+                    _effects.emit(ProfileEffect.ShowSnackbar("Profile refreshed."))
                 }
                 profileResult is AppResult.Failure -> {
                     showRefreshError(profileResult.error.message)
@@ -167,7 +167,7 @@ class ProfileViewModel(
         if (validationError != null) {
             _uiState.update { state ->
                 state.copy(
-                    nameError = if (name.isBlank()) "Tên không được để trống." else null,
+                    nameError = if (name.isBlank()) "Name is required." else null,
                     dailyNewWordsError = validationError.takeIf { dailyNewWords == null || dailyNewWords !in 1..100 }
                 )
             }
@@ -200,7 +200,7 @@ class ProfileViewModel(
                             dailyNewWordsError = null
                         )
                     }
-                    _effects.emit(ProfileEffect.ShowSnackbar("Đã lưu hồ sơ."))
+                    _effects.emit(ProfileEffect.ShowSnackbar("Profile saved."))
                 }
                 is AppResult.Failure -> {
                     _uiState.update {
@@ -244,7 +244,7 @@ class ProfileViewModel(
                         )
                     }
                     reminderScheduler.schedule(result.data)
-                    _effects.emit(ProfileEffect.ShowSnackbar("Đã lưu nhắc học."))
+                    _effects.emit(ProfileEffect.ShowSnackbar("Reminder settings saved."))
                 }
                 is AppResult.Failure -> {
                     _uiState.update {
@@ -319,18 +319,18 @@ class ProfileViewModel(
     }
 
     private fun validateProfile(name: String, dailyNewWords: Int?): String? {
-        if (name.isBlank()) return "Tên không được để trống."
+        if (name.isBlank()) return "Name is required."
         if (dailyNewWords == null || dailyNewWords !in 1..100) {
-            return "Số từ mới mỗi ngày phải từ 1 đến 100."
+            return "Daily new words must be between 1 and 100."
         }
         return null
     }
 
     private fun validateDailyTime(value: String): String? {
-        if (!TIME_REGEX.matches(value)) return "Giờ nhắc học cần có định dạng HH:mm."
+        if (!TIME_REGEX.matches(value)) return "Reminder time must use HH:mm format."
         val hour = value.substringBefore(":").toInt()
         val minute = value.substringAfter(":").toInt()
-        return if (hour in 0..23 && minute in 0..59) null else "Giờ nhắc học không hợp lệ."
+        return if (hour in 0..23 && minute in 0..59) null else "Invalid reminder time."
     }
 
     private fun User.toUiState(settings: NotificationSettings): ProfileUiState {

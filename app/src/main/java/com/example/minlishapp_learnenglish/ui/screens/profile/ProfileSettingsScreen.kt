@@ -21,10 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Alarm
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
@@ -439,28 +436,13 @@ private fun AccountCard(
     isLoggingOut: Boolean,
     onLogout: () -> Unit
 ) {
-    SettingsSectionCard(
-        title = "Support",
-        icon = Icons.Outlined.Settings
-    ) {
-        StaticSettingRow(
-            icon = Icons.Outlined.Edit,
-            title = "Profile data",
-            subtitle = "Name, goal and level are synced with FastAPI."
-        )
-        StaticSettingRow(
-            icon = Icons.Outlined.ErrorOutline,
-            title = "App version",
-            subtitle = "Course project build"
-        )
-        MinLishOutlinedButton(
-            text = if (isLoggingOut) "Logging out..." else "Log out",
-            icon = Icons.AutoMirrored.Outlined.Logout,
-            onClick = onLogout,
-            enabled = !isLoggingOut,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
+    MinLishOutlinedButton(
+        text = if (isLoggingOut) "Logging out..." else "Log out",
+        icon = Icons.AutoMirrored.Outlined.Logout,
+        onClick = onLogout,
+        enabled = !isLoggingOut,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -506,21 +488,6 @@ private fun ToggleSettingRow(
 ) {
     SettingRowShell(icon = icon, title = title, subtitle = subtitle) {
         Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-@Composable
-private fun StaticSettingRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String
-) {
-    SettingRowShell(icon = icon, title = title, subtitle = subtitle) {
-        Icon(
-            imageVector = Icons.Outlined.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 

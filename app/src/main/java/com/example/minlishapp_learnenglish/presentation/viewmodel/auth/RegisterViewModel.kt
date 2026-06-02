@@ -36,7 +36,7 @@ sealed interface RegisterEvent {
 }
 
 sealed interface RegisterEffect {
-    data class NavigateSetup(val userName: String) : RegisterEffect
+    data class NavigateVerifyEmail(val email: String, val userName: String) : RegisterEffect
     data object NavigateLogin : RegisterEffect
     data class ShowSnackbar(val message: String) : RegisterEffect
 }
@@ -118,7 +118,7 @@ class RegisterViewModel(
             when (val result = registerUseCase(name, email, password)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    _effects.emit(RegisterEffect.NavigateSetup(name))
+                    _effects.emit(RegisterEffect.NavigateVerifyEmail(email, name))
                 }
                 is AppResult.Failure -> {
                     _uiState.update { it.copy(isLoading = false, apiError = result.error.message) }

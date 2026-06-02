@@ -10,9 +10,14 @@ from app.schemas.auth import (
     GoogleLoginRequest,
     LoginRequest,
     LogoutRequest,
+    ForgotPasswordRequest,
+    MessageResponse,
     RefreshRequest,
     RefreshResponse,
     RegisterRequest,
+    ResendVerificationOtpRequest,
+    ResetPasswordRequest,
+    VerifyEmailRequest,
 )
 from app.services.auth_service import AuthService
 
@@ -76,3 +81,39 @@ def logout(
 ) -> Response:
     auth_service.logout(request.refresh_token)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/verify-email", response_model=AuthResponse)
+def verify_email(
+    request: VerifyEmailRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> AuthResponse:
+    return auth_service.verify_email(email=str(request.email), otp=request.otp)
+
+
+@router.post("/resend-verification-otp", response_model=MessageResponse)
+def resend_verification_otp(
+    request: ResendVerificationOtpRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> MessageResponse:
+    return auth_service.resend_verification_otp(email=str(request.email))
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(
+    request: ForgotPasswordRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> MessageResponse:
+    return auth_service.forgot_password(email=str(request.email))
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(
+    request: ResetPasswordRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> MessageResponse:
+    return auth_service.reset_password(
+        email=str(request.email),
+        otp=request.otp,
+        new_password=request.new_password,
+    )

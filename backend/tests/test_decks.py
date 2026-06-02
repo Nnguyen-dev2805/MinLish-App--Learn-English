@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.deck import Deck
+from app.models.user import User
 from app.models.vocabulary_item import VocabularyItem
 from app.services.anki_import_service import SOURCE_NAME
 
@@ -194,8 +196,18 @@ def _auth_headers(client: TestClient, email: str = "learner@example.com") -> dic
         },
     )
     assert response.status_code == 200
+    _verify_user_in_db(client, email)
     access_token = response.json()["access_token"]
     return {"Authorization": f"Bearer {access_token}"}
+
+
+def _verify_user_in_db(client: TestClient, email: str) -> None:
+    session_local = client.app.state.testing_session_local
+    with session_local() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        assert user is not None
+        user.email_verified = True
+        db.commit()
 
 
 def _seed_anki_decks(client: TestClient) -> dict[str, int]:

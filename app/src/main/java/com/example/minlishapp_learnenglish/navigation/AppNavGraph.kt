@@ -21,6 +21,8 @@ import androidx.navigation.navArgument
 import com.example.minlishapp_learnenglish.core.AppContainer
 import com.example.minlishapp_learnenglish.presentation.viewmodel.viewModelFactory
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.AuthEffect
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.ForgotPasswordEffect
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.ForgotPasswordViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SplashViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterViewModel
@@ -29,6 +31,8 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterE
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupEffect
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.VerifyEmailEffect
+import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.VerifyEmailViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckViewModel
@@ -54,9 +58,11 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.Profil
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileViewModel
 import com.example.minlishapp_learnenglish.ui.screens.auth.LoginScreen
+import com.example.minlishapp_learnenglish.ui.screens.auth.ForgotPasswordScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SetupScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SplashScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.RegisterScreen
+import com.example.minlishapp_learnenglish.ui.screens.auth.VerifyEmailScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.CreateDeckScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckDetailScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckListScreen
@@ -127,6 +133,7 @@ fun AppNavGraph(
                 onPasswordChange = viewModel::onPasswordChange,
                 onLogin = viewModel::loginWithEmailPassword,
                 onSignUp = viewModel::navigateRegister,
+                onForgotPassword = { navController.navigate(Routes.ForgotPassword) },
                 onGoogleLogin = viewModel::googleLogin,
                 onError = viewModel::showError
             )
@@ -143,8 +150,8 @@ fun AppNavGraph(
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        is RegisterEffect.NavigateSetup -> {
-                            navController.navigate(Routes.Setup + "/${java.net.URLEncoder.encode(effect.userName, "UTF-8")}") {
+                        is RegisterEffect.NavigateVerifyEmail -> {
+                            navController.navigate(Routes.verifyEmail(effect.email, effect.userName)) {
                                 popUpTo(Routes.Register) { inclusive = true }
                                 launchSingleTop = true
                             }
@@ -164,6 +171,95 @@ fun AppNavGraph(
                 onConfirmPasswordChange = { value -> viewModel.onEvent(RegisterEvent.ConfirmPasswordChanged(value)) },
                 onSubmit = { viewModel.onEvent(RegisterEvent.Submit) },
                 onBack = { viewModel.onEvent(RegisterEvent.BackToLoginClicked) }
+            )
+        }
+        composable(
+            route = Routes.VerifyEmail,
+            arguments = listOf(
+                navArgument("email") { type = NavType.StringType },
+                navArgument("userName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val email = java.net.URLDecoder.decode(
+                backStackEntry.arguments?.getString("email") ?: "",
+                "UTF-8"
+            )
+            val userName = java.net.URLDecoder.decode(
+                backStackEntry.arguments?.getString("userName") ?: "",
+                "UTF-8"
+            )
+            val viewModel: VerifyEmailViewModel = viewModel(
+                factory = viewModelFactory {
+                    VerifyEmailViewModel(
+                        email = email,
+                        verifyEmailUseCase = appContainer.verifyEmailUseCase,
+                        resendVerificationOtpUseCase = appContainer.resendVerificationOtpUseCase
+                    )
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        VerifyEmailEffect.NavigateSetup -> {
+                            navController.navigate(Routes.Setup + "/${java.net.URLEncoder.encode(userName, "UTF-8")}") {
+                                popUpTo(Routes.Login) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        }
+                        VerifyEmailEffect.NavigateLogin -> {
+                            navController.navigate(Routes.Login) {
+                                popUpTo(Routes.VerifyEmail) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                        is VerifyEmailEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                    }
+                }
+            }
+
+            VerifyEmailScreen(
+                uiState = uiState,
+                snackbarHostState = snackbarHostState,
+                onOtpChange = viewModel::onOtpChange,
+                onVerify = viewModel::verify,
+                onResend = viewModel::resend,
+                onBack = viewModel::backToLogin
+            )
+        }
+        composable(Routes.ForgotPassword) {
+            val viewModel: ForgotPasswordViewModel = viewModel(
+                factory = viewModelFactory {
+                    ForgotPasswordViewModel(
+                        forgotPasswordUseCase = appContainer.forgotPasswordUseCase,
+                        resetPasswordUseCase = appContainer.resetPasswordUseCase
+                    )
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        ForgotPasswordEffect.NavigateLogin -> navController.popBackStack()
+                        is ForgotPasswordEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                    }
+                }
+            }
+
+            ForgotPasswordScreen(
+                uiState = uiState,
+                snackbarHostState = snackbarHostState,
+                onEmailChange = viewModel::onEmailChange,
+                onOtpChange = viewModel::onOtpChange,
+                onNewPasswordChange = viewModel::onNewPasswordChange,
+                onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+                onSendCode = viewModel::sendCode,
+                onResetPassword = viewModel::resetPassword,
+                onBack = viewModel::backToLogin
             )
         }
         composable(

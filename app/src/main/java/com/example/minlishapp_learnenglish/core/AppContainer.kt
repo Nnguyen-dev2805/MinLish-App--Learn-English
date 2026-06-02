@@ -22,8 +22,12 @@ import com.example.minlishapp_learnenglish.data.repository.LearningRepository
 import com.example.minlishapp_learnenglish.data.repository.DefaultNotificationRepository
 import com.example.minlishapp_learnenglish.data.repository.NotificationRepository
 import com.example.minlishapp_learnenglish.domain.usecase.auth.CheckSessionUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.auth.ForgotPasswordUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.auth.LoginUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.auth.RegisterUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.auth.ResendVerificationOtpUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.auth.ResetPasswordUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.auth.VerifyEmailUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateDeckUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateWordUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.DeleteWordUseCase
@@ -99,6 +103,10 @@ class AppContainer(context: Context) {
     val loginUseCase = LoginUseCase(authRepository)
     val googleLoginUseCase = com.example.minlishapp_learnenglish.domain.usecase.auth.GoogleLoginUseCase(authRepository)
     val registerUseCase = RegisterUseCase(authRepository)
+    val verifyEmailUseCase = VerifyEmailUseCase(authRepository)
+    val resendVerificationOtpUseCase = ResendVerificationOtpUseCase(authRepository)
+    val forgotPasswordUseCase = ForgotPasswordUseCase(authRepository)
+    val resetPasswordUseCase = ResetPasswordUseCase(authRepository)
     val loadHomeUseCase = LoadHomeUseCase(
         authRepository = authRepository,
         analyticsRepository = analyticsRepository,

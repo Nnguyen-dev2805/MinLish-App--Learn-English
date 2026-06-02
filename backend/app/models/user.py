@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -29,6 +29,17 @@ class User(Base):
     goal: Mapped[str | None] = mapped_column(String(120), nullable=True)
     level: Mapped[str | None] = mapped_column(String(60), nullable=True)
     daily_new_words: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    email_otp_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email_otp_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    password_reset_otp_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    password_reset_otp_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

@@ -18,7 +18,6 @@ data class CreateDeckUiState(
     val description: String = "",
     val tagInput: String = "",
     val tags: List<String> = emptyList(),
-    val makePublic: Boolean = false,
     val isLoading: Boolean = false,
     val nameError: String? = null,
     val apiError: String? = null
@@ -30,7 +29,6 @@ sealed interface CreateDeckEvent {
     data class TagInputChanged(val value: String) : CreateDeckEvent
     data class RemoveTag(val tag: String) : CreateDeckEvent
     data class SuggestedTagSelected(val tag: String) : CreateDeckEvent
-    data class MakePublicChanged(val value: Boolean) : CreateDeckEvent
     data object AddTag : CreateDeckEvent
     data object Submit : CreateDeckEvent
     data object BackClicked : CreateDeckEvent
@@ -67,7 +65,6 @@ class CreateDeckViewModel(
                 it.copy(tags = it.tags.filterNot { tag -> tag.equals(event.tag, ignoreCase = true) })
             }
             is CreateDeckEvent.SuggestedTagSelected -> addTag(event.tag)
-            is CreateDeckEvent.MakePublicChanged -> _uiState.update { it.copy(makePublic = event.value) }
             CreateDeckEvent.Submit -> submit()
             CreateDeckEvent.BackClicked -> emitEffect(CreateDeckEffect.NavigateBack)
         }
@@ -109,13 +106,6 @@ class CreateDeckViewModel(
             ) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    if (state.makePublic) {
-                        _effects.emit(
-                            CreateDeckEffect.ShowSnackbar(
-                                "Public deck chưa được backend hỗ trợ trong v1; deck đã tạo ở chế độ riêng tư."
-                            )
-                        )
-                    }
                     _effects.emit(CreateDeckEffect.NavigateDeckDetail(result.data.id))
                 }
 

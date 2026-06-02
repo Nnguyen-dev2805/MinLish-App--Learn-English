@@ -20,9 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,7 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -54,7 +51,6 @@ fun CreateDeckScreen(
     onAddTag: () -> Unit,
     onRemoveTag: (String) -> Unit,
     onSuggestedTag: (String) -> Unit,
-    onMakePublicChange: (Boolean) -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -84,7 +80,6 @@ fun CreateDeckScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                CoverPhotoPlaceholder()
                 MinLishTextField(
                     value = uiState.name,
                     onValueChange = onNameChange,
@@ -107,10 +102,6 @@ fun CreateDeckScreen(
                     onAddTag = onAddTag,
                     onRemoveTag = onRemoveTag,
                     onSuggestedTag = onSuggestedTag
-                )
-                PublicToggle(
-                    checked = uiState.makePublic,
-                    onCheckedChange = onMakePublicChange
                 )
                 if (uiState.apiError != null) {
                     Text(
@@ -167,57 +158,6 @@ private fun CreateDeckTopBar(onBack: () -> Unit) {
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.primary
             )
-        }
-        IconButton(onClick = {}) {
-            Icon(
-                imageVector = Icons.Outlined.Settings,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun CoverPhotoPlaceholder() {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(184.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(MinLishSpacing.sm)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.AddAPhoto,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(MinLishSpacing.md)
-                            .size(32.dp)
-                    )
-                }
-                Text(
-                    text = "Cover Photo",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Missing backend support: cover_image_url",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
@@ -307,35 +247,5 @@ private fun TagSuggestion(tag: String, onClick: () -> Unit) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-private fun PublicToggle(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(MinLishSpacing.md),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Make Public", style = MaterialTheme.typography.labelLarge)
-                Text(
-                    text = "Backend v1 tạo deck cá nhân; public sharing sẽ bổ sung sau.",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
-        }
     }
 }

@@ -346,9 +346,6 @@ fun AppNavGraph(
                 onAddTag = { viewModel.onEvent(CreateDeckEvent.AddTag) },
                 onRemoveTag = { tag -> viewModel.onEvent(CreateDeckEvent.RemoveTag(tag)) },
                 onSuggestedTag = { tag -> viewModel.onEvent(CreateDeckEvent.SuggestedTagSelected(tag)) },
-                onMakePublicChange = { value ->
-                    viewModel.onEvent(CreateDeckEvent.MakePublicChanged(value))
-                },
                 onSubmit = { viewModel.onEvent(CreateDeckEvent.Submit) }
             )
         }

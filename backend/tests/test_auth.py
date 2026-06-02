@@ -115,11 +115,16 @@ def test_me_requires_bearer_token(client: TestClient) -> None:
     assert response.json()["code"] == "UNAUTHORIZED"
 
 
-def test_google_login_reports_not_configured(client: TestClient) -> None:
-    response = client.post("/api/v1/auth/google", json={"id_token": "token"})
-
-    assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Google login chưa được cấu hình trong v1.",
-        "code": "GOOGLE_LOGIN_NOT_CONFIGURED",
-    }
+def test_google_login_reports_not_configured(client: TestClient, monkeypatch) -> None:
+    from app.core.config import get_settings
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "")
+    get_settings.cache_clear()
+    try:
+        response = client.post("/api/v1/auth/google", json={"id_token": "token"})
+        assert response.status_code == 400
+        assert response.json() == {
+            "detail": "Google Client ID chưa được cấu hình.",
+            "code": "GOOGLE_LOGIN_NOT_CONFIGURED",
+        }
+    finally:
+        get_settings.cache_clear()

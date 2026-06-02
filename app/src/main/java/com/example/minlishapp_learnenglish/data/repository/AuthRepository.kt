@@ -17,7 +17,13 @@ import com.squareup.moshi.Moshi
 
 interface AuthRepository {
     suspend fun login(email: String, password: String): AppResult<AuthSession>
-    suspend fun register(name: String, email: String, password: String): AppResult<AuthSession>
+    suspend fun register(
+        name: String,
+        email: String,
+        password: String,
+        goal: String? = null,
+        level: String? = null
+    ): AppResult<AuthSession>
     suspend fun loginWithGoogle(idToken: String): AppResult<AuthSession>
     suspend fun refresh(refreshToken: String): AppResult<String>
     suspend fun logout(refreshToken: String): AppResult<Unit>
@@ -44,10 +50,20 @@ class DefaultAuthRepository(
     override suspend fun register(
         name: String,
         email: String,
-        password: String
+        password: String,
+        goal: String?,
+        level: String?
     ): AppResult<AuthSession> {
         return saveSessionResult {
-            authApi.register(RegisterRequestDto(email = email, password = password, name = name))
+            authApi.register(
+                RegisterRequestDto(
+                    email = email,
+                    password = password,
+                    name = name,
+                    goal = goal,
+                    level = level
+                )
+            )
         }
     }
 

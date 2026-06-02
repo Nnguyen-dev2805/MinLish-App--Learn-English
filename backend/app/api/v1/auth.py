@@ -32,6 +32,8 @@ def register(
         email=str(request.email),
         password=request.password,
         name=request.name,
+        goal=request.goal,
+        level=request.level,
     )
 
 

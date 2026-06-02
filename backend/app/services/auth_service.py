@@ -25,7 +25,14 @@ class AuthService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def register(self, email: str, password: str, name: str) -> AuthResponse:
+    def register(
+        self,
+        email: str,
+        password: str,
+        name: str,
+        goal: str | None = None,
+        level: str | None = None,
+    ) -> AuthResponse:
         normalized_email = self._normalize_email(email)
         existing_user = self._get_user_by_email(normalized_email)
         if existing_user is not None:
@@ -39,6 +46,8 @@ class AuthService:
             email=normalized_email,
             password_hash=hash_password(password),
             name=name.strip(),
+            goal=goal.strip() if goal else None,
+            level=level.strip() if level else None,
             daily_new_words=10,
         )
         self.db.add(user)

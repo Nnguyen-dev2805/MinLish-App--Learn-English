@@ -9,7 +9,9 @@ import com.squareup.moshi.JsonClass
 data class RegisterRequestDto(
     @param:Json(name = "email") val email: String,
     @param:Json(name = "password") val password: String,
-    @param:Json(name = "name") val name: String
+    @param:Json(name = "name") val name: String,
+    @param:Json(name = "goal") val goal: String? = null,
+    @param:Json(name = "level") val level: String? = null
 )
 
 @JsonClass(generateAdapter = true)

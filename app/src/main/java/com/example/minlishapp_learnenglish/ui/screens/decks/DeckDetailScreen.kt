@@ -46,9 +46,11 @@ import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
 import android.provider.OpenableColumns
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun DeckDetailScreen(
@@ -60,6 +62,8 @@ fun DeckDetailScreen(
     onAddWord: () -> Unit,
     onEditWord: (Long) -> Unit,
     onImport: (String, ByteArray) -> Unit,
+    onExport: () -> Unit,
+    onExportSaved: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -82,6 +86,30 @@ fun DeckDetailScreen(
             }
         }
     }
+    val exportFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    ) { uri ->
+        val fileBytes = uiState.exportFileBytes
+        if (uri == null || fileBytes == null) {
+            if (fileBytes != null) onExportSaved(false)
+            return@rememberLauncherForActivityResult
+        }
+        val saved = runCatching {
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(fileBytes)
+            } ?: error("Cannot open export file.")
+        }.isSuccess
+        onExportSaved(saved)
+    }
+
+    LaunchedEffect(uiState.exportFileBytes) {
+        val fileName = uiState.exportFileName
+        if (fileName != null && uiState.exportFileBytes != null) {
+            exportFileLauncher.launch(fileName)
+        }
+    }
 
     Box(
         modifier = modifier
@@ -101,11 +129,7 @@ fun DeckDetailScreen(
             item {
                 DeckDetailTopBar(
                     title = uiState.deck?.displayTitle ?: "Deck Detail",
-                    onBack = onBack,
-                    canEdit = uiState.deck?.isReadOnly == false && uiState.deck?.isSeed == false,
-                    onImportClick = {
-                        filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                    }
+                    onBack = onBack
                 )
             }
             when {
@@ -131,6 +155,19 @@ fun DeckDetailScreen(
                         DeckActionRow(
                             onLearnDeck = { onLearnDeck(uiState.deck.id) }
                         )
+                    }
+                    if (uiState.deck.isReadOnly.not() && uiState.deck.isSeed.not()) {
+                        item {
+                            DeckImportExportRow(
+                                isExporting = uiState.isExporting,
+                                onImportClick = {
+                                    filePickerLauncher.launch(
+                                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                    )
+                                },
+                                onExportClick = onExport
+                            )
+                        }
                     }
                     item {
                         Row(
@@ -194,9 +231,7 @@ fun DeckDetailScreen(
 @Composable
 private fun DeckDetailTopBar(
     title: String,
-    onBack: () -> Unit,
-    canEdit: Boolean = false,
-    onImportClick: () -> Unit = {}
+    onBack: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -220,10 +255,70 @@ private fun DeckDetailTopBar(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        if (canEdit) {
-            IconButton(onClick = onImportClick) {
-                Icon(imageVector = Icons.Outlined.FileUpload, contentDescription = "Import Excel")
-            }
+    }
+}
+
+@Composable
+private fun DeckImportExportRow(
+    isExporting: Boolean,
+    onImportClick: () -> Unit,
+    onExportClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.sm)
+    ) {
+        DeckSmallActionButton(
+            title = "Import Excel",
+            icon = Icons.Outlined.FileUpload,
+            onClick = onImportClick,
+            modifier = Modifier.weight(1f)
+        )
+        DeckSmallActionButton(
+            title = if (isExporting) "Exporting..." else "Export Excel",
+            icon = Icons.Outlined.FileDownload,
+            onClick = onExportClick,
+            enabled = !isExporting,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun DeckSmallActionButton(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    val shape = RoundedCornerShape(18.dp)
+    Surface(
+        modifier = modifier
+            .clip(shape)
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = shape,
+        color = if (enabled) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
+        contentColor = MaterialTheme.colorScheme.primary
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = MinLishSpacing.sm, horizontal = MinLishSpacing.md),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(imageVector = icon, contentDescription = null)
+            Text(
+                text = title,
+                modifier = Modifier.padding(start = MinLishSpacing.xs),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

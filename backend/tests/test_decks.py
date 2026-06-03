@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from io import BytesIO
+
+import openpyxl
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -162,6 +165,99 @@ def test_seed_deck_is_read_only(client: TestClient) -> None:
     assert create_item_response.status_code == 403
     assert create_item_response.json()["code"] == "SEED_DECK_READ_ONLY"
 
+    export_response = client.get(f"/api/v1/decks/{seed_deck_id}/export", headers=headers)
+    assert export_response.status_code == 404
+    assert export_response.json()["code"] == "PERSONAL_DECK_NOT_FOUND"
+
+
+def test_import_excel_only_for_personal_deck(client: TestClient) -> None:
+    headers = _auth_headers(client)
+    deck_response = client.post(
+        "/api/v1/decks",
+        headers=headers,
+        json={"name": "Personal Excel Deck", "description": None, "tags": []},
+    )
+    assert deck_response.status_code == 201
+    deck_id = deck_response.json()["id"]
+
+    excel_bytes = _excel_bytes(
+        [
+            ["Word", "Pronunciation", "Meaning", "English Description", "Example"],
+            ["hello", "/həˈloʊ/", "xin chào", "A greeting.", "Hello, nice to meet you."],
+            ["", "", "missing word", "skip", "skip"],
+            ["travel", None, "du lịch", None, "I love to travel."],
+            ["broken", None, None, "missing meaning", "skip"],
+        ],
+    )
+    import_response = client.post(
+        f"/api/v1/decks/{deck_id}/import",
+        headers=headers,
+        files={
+            "file": (
+                "words.xlsx",
+                excel_bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ),
+        },
+    )
+
+    assert import_response.status_code == 200
+    assert import_response.json()["imported_count"] == 2
+
+    items_response = client.get(f"/api/v1/decks/{deck_id}/items", headers=headers)
+    assert items_response.status_code == 200
+    items = items_response.json()["items"]
+    assert [item["word"] for item in items] == ["hello", "travel"]
+    assert items[0]["pronunciation"] == "/həˈloʊ/"
+    assert items[0]["meaning"] == "xin chào"
+    assert items[0]["description"] == "A greeting."
+    assert items[0]["example"] == "Hello, nice to meet you."
+    assert items[0]["collocation"] is None
+    assert items[0]["related_words"] is None
+    assert items[0]["note"] is None
+
+
+def test_export_excel_only_for_personal_deck(client: TestClient) -> None:
+    headers = _auth_headers(client)
+    deck_response = client.post(
+        "/api/v1/decks",
+        headers=headers,
+        json={"name": "Export Deck", "description": None, "tags": []},
+    )
+    assert deck_response.status_code == 201
+    deck_id = deck_response.json()["id"]
+
+    create_item_response = client.post(
+        f"/api/v1/decks/{deck_id}/items",
+        headers=headers,
+        json={
+            "word": "airport",
+            "pronunciation": "/ˈeəpɔːt/",
+            "meaning": "sân bay",
+            "description": "A place where planes land and take off.",
+            "example": "We arrived at the airport early.",
+        },
+    )
+    assert create_item_response.status_code == 201
+
+    export_response = client.get(f"/api/v1/decks/{deck_id}/export", headers=headers)
+
+    assert export_response.status_code == 200
+    assert export_response.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+    workbook = openpyxl.load_workbook(BytesIO(export_response.content), data_only=True)
+    rows = list(workbook.active.iter_rows(values_only=True))
+    assert rows[0] == ("Word", "Pronunciation", "Meaning", "English Description", "Example")
+    assert rows[1] == (
+        "airport",
+        "/ˈeəpɔːt/",
+        "sân bay",
+        "A place where planes land and take off.",
+        "We arrived at the airport early.",
+    )
+
 
 def test_user_cannot_access_other_users_private_deck(client: TestClient) -> None:
     owner_headers = _auth_headers(client, email="owner@example.com")
@@ -254,6 +350,16 @@ def _seed_anki_decks_in_session(db: Session) -> dict[str, int]:
         db.flush()
     db.commit()
     return seed_ids
+
+
+def _excel_bytes(rows: list[list[object | None]]) -> bytes:
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    for row in rows:
+        sheet.append(row)
+    output = BytesIO()
+    workbook.save(output)
+    return output.getvalue()
 
 
 def _anxious_item(deck_id: int) -> VocabularyItem:

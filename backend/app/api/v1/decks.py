@@ -1,10 +1,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Response, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.exceptions import ApiError
 from app.db.session import get_db
+from app.models.deck import Deck
 from app.models.user import User
 from app.schemas.deck import DeckCreateRequest, DeckListResponse, DeckResponse, DeckUpdateRequest
 from app.schemas.vocabulary import (
@@ -27,6 +30,22 @@ def get_import_export_service(db: Annotated[Session, Depends(get_db)]) -> Import
     return ImportExportService(db)
 
 
+def get_personal_editable_deck(deck_service: DeckService, user: User, deck_id: int) -> Deck:
+    deck = deck_service.db.query(Deck).filter(
+        Deck.id == deck_id,
+        Deck.user_id == user.id,
+        Deck.is_seed.is_(False),
+        Deck.is_read_only.is_(False),
+    ).first()
+    if deck is None:
+        raise ApiError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy deck cá nhân hoặc deck không cho phép chỉnh sửa.",
+            code="PERSONAL_DECK_NOT_FOUND",
+        )
+    return deck
+
+
 @router.post("/decks/{deck_id}/import", response_model=dict)
 def import_deck_items(
     deck_id: int,
@@ -35,21 +54,27 @@ def import_deck_items(
     import_export_service: Annotated[ImportExportService, Depends(get_import_export_service)],
     file: UploadFile = File(...),
 ) -> dict:
-    # First verify deck exists and user has access
-    # Get deck will raise 404 if not found or 403 if user can't access
-    # DeckService returns a DeckResponse schema, we need the actual model
-    from app.models.deck import Deck
-    deck_model = deck_service.db.query(Deck).filter(
-        Deck.id == deck_id,
-        Deck.user_id == current_user.id
-    ).first()
-    
-    if not deck_model:
-        from app.core.exceptions import ApiError
-        raise ApiError(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy bộ từ vựng hoặc bạn không có quyền.")
-
+    deck_model = get_personal_editable_deck(deck_service, current_user, deck_id)
     imported_count = import_export_service.import_excel(current_user, deck_model, file)
     return {"message": "Nhập dữ liệu thành công.", "imported_count": imported_count}
+
+
+@router.get("/decks/{deck_id}/export")
+def export_deck_items(
+    deck_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    deck_service: Annotated[DeckService, Depends(get_deck_service)],
+    import_export_service: Annotated[ImportExportService, Depends(get_import_export_service)],
+) -> StreamingResponse:
+    deck_model = get_personal_editable_deck(deck_service, current_user, deck_id)
+    file_stream = import_export_service.export_excel(deck_model)
+    safe_name = "_".join(deck_model.name.strip().split()) or "deck"
+    filename = f"{safe_name}_vocabulary.xlsx"
+    return StreamingResponse(
+        file_stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/decks", response_model=DeckListResponse)

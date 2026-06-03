@@ -8,6 +8,8 @@ import com.example.minlishapp_learnenglish.data.remote.dto.UpdateDeckRequestDto
 import com.example.minlishapp_learnenglish.data.remote.dto.UpdateVocabularyItemRequestDto
 import com.example.minlishapp_learnenglish.data.remote.dto.VocabularyItemListResponseDto
 import com.example.minlishapp_learnenglish.data.remote.dto.VocabularyItemResponseDto
+import okhttp3.MultipartBody
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -16,7 +18,6 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Multipart
 import retrofit2.http.Part
-import okhttp3.MultipartBody
 
 class ImportResponseDto(
     val message: String,
@@ -51,6 +52,9 @@ interface DeckApi {
         @Path("deck_id") deckId: Long,
         @Part file: MultipartBody.Part
     ): ImportResponseDto
+
+    @GET("decks/{deck_id}/export")
+    suspend fun exportDeckItems(@Path("deck_id") deckId: Long): ResponseBody
 
     @POST("decks/{deck_id}/items")
     suspend fun createDeckItem(

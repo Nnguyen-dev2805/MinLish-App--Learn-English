@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
 import com.example.minlishapp_learnenglish.domain.model.VocabularyDeck
 import com.example.minlishapp_learnenglish.domain.model.VocabularyWord
+import com.example.minlishapp_learnenglish.domain.usecase.decks.ExportDeckItemsUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckDetailUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckItemsUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,7 +22,10 @@ data class DeckDetailUiState(
     val isLoading: Boolean = true,
     val deck: VocabularyDeck? = null,
     val words: List<VocabularyWord> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isExporting: Boolean = false,
+    val exportFileName: String? = null,
+    val exportFileBytes: ByteArray? = null
 ) {
     val isEmpty: Boolean = !isLoading && errorMessage == null && words.isEmpty()
 }
@@ -43,7 +48,8 @@ class DeckDetailViewModel(
     private val deckId: Long,
     private val getDeckDetailUseCase: GetDeckDetailUseCase,
     private val getDeckItemsUseCase: GetDeckItemsUseCase,
-    private val importDeckItemsUseCase: com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase
+    private val importDeckItemsUseCase: ImportDeckItemsUseCase,
+    private val exportDeckItemsUseCase: ExportDeckItemsUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DeckDetailUiState())
     val uiState: StateFlow<DeckDetailUiState> = _uiState.asStateFlow()
@@ -147,5 +153,52 @@ class DeckDetailViewModel(
                 }
             }
         }
+    }
+
+    fun exportExcel() {
+        val deck = _uiState.value.deck
+        if (deck == null || deck.isReadOnly || deck.isSeed) {
+            emitEffect(DeckDetailEffect.ShowSnackbar("Seed decks are read-only."))
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, errorMessage = null) }
+            when (val result = exportDeckItemsUseCase(deck.id)) {
+                is AppResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isExporting = false,
+                            exportFileName = "${deck.safeFileName()}_vocabulary.xlsx",
+                            exportFileBytes = result.data
+                        )
+                    }
+                }
+
+                is AppResult.Failure -> {
+                    _uiState.update { it.copy(isExporting = false) }
+                    emitEffect(DeckDetailEffect.ShowSnackbar("Export failed: ${result.error.message}"))
+                }
+            }
+        }
+    }
+
+    fun onExportSaved(success: Boolean) {
+        _uiState.update {
+            it.copy(exportFileName = null, exportFileBytes = null)
+        }
+        emitEffect(
+            DeckDetailEffect.ShowSnackbar(
+                if (success) "Exported deck successfully." else "Export canceled."
+            )
+        )
+    }
+
+    private fun VocabularyDeck.safeFileName(): String {
+        return displayTitle
+            .trim()
+            .replace(Regex("[^A-Za-z0-9_-]+"), "_")
+            .trim('_')
+            .ifBlank { "deck" }
     }
 }

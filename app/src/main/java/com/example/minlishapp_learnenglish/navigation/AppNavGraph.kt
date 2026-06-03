@@ -437,7 +437,8 @@ fun AppNavGraph(
                         deckId = deckId,
                         getDeckDetailUseCase = appContainer.getDeckDetailUseCase,
                         getDeckItemsUseCase = appContainer.getDeckItemsUseCase,
-                        importDeckItemsUseCase = appContainer.importDeckItemsUseCase
+                        importDeckItemsUseCase = appContainer.importDeckItemsUseCase,
+                        exportDeckItemsUseCase = appContainer.exportDeckItemsUseCase
                     )
                 }
             )
@@ -489,7 +490,9 @@ fun AppNavGraph(
                 onLearnDeck = { id -> navController.navigate(Routes.learnDeck(id)) },
                 onAddWord = { viewModel.onEvent(DeckDetailEvent.AddWordClicked) },
                 onEditWord = { wordId -> viewModel.onEvent(DeckDetailEvent.EditWordClicked(wordId)) },
-                onImport = viewModel::importExcel
+                onImport = viewModel::importExcel,
+                onExport = viewModel::exportExcel,
+                onExportSaved = viewModel::onExportSaved
             )
         }
         composable(
@@ -795,13 +798,6 @@ private fun WordEditorRoute(
             viewModel.onEvent(WordEditorEvent.DescriptionChanged(value))
         },
         onExampleChange = { value -> viewModel.onEvent(WordEditorEvent.ExampleChanged(value)) },
-        onCollocationChange = { value ->
-            viewModel.onEvent(WordEditorEvent.CollocationChanged(value))
-        },
-        onRelatedWordsChange = { value ->
-            viewModel.onEvent(WordEditorEvent.RelatedWordsChanged(value))
-        },
-        onNoteChange = { value -> viewModel.onEvent(WordEditorEvent.NoteChanged(value)) },
         onSubmit = { viewModel.onEvent(WordEditorEvent.Submit) },
         onDelete = { viewModel.onEvent(WordEditorEvent.Delete) }
     )

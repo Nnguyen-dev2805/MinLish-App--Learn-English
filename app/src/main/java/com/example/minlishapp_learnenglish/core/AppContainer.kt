@@ -31,9 +31,11 @@ import com.example.minlishapp_learnenglish.domain.usecase.auth.VerifyEmailUseCas
 import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateDeckUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateWordUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.DeleteWordUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.decks.ExportDeckItemsUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckDetailUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckItemsUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDecksUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.UpdateWordUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.home.LoadHomeUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.learning.GetReviewCardsUseCase
@@ -115,7 +117,8 @@ class AppContainer(context: Context) {
     val getDecksUseCase = GetDecksUseCase(deckRepository)
     val getDeckDetailUseCase = GetDeckDetailUseCase(deckRepository)
     val getDeckItemsUseCase = GetDeckItemsUseCase(deckRepository)
-    val importDeckItemsUseCase = com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase(deckRepository)
+    val importDeckItemsUseCase = ImportDeckItemsUseCase(deckRepository)
+    val exportDeckItemsUseCase = ExportDeckItemsUseCase(deckRepository)
     val createDeckUseCase = CreateDeckUseCase(deckRepository)
     val createWordUseCase = CreateWordUseCase(deckRepository)
     val updateWordUseCase = UpdateWordUseCase(deckRepository)

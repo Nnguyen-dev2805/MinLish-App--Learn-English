@@ -8,9 +8,11 @@ import com.example.minlishapp_learnenglish.domain.model.VocabularyWord
 import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateDeckUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateWordUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.DeleteWordUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.decks.ExportDeckItemsUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckDetailUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckItemsUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDecksUseCase
+import com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.decks.UpdateWordUseCase
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -122,7 +124,9 @@ class DeckViewModelTest {
         val viewModel = DeckDetailViewModel(
             deckId = 1L,
             getDeckDetailUseCase = GetDeckDetailUseCase(repository),
-            getDeckItemsUseCase = GetDeckItemsUseCase(repository)
+            getDeckItemsUseCase = GetDeckItemsUseCase(repository),
+            importDeckItemsUseCase = ImportDeckItemsUseCase(repository),
+            exportDeckItemsUseCase = ExportDeckItemsUseCase(repository)
         )
 
         advanceUntilIdle()
@@ -321,6 +325,16 @@ private class FakeDeckRepository(
     override suspend fun deleteWord(itemId: Long): AppResult<Unit> {
         deleteWordCalls += 1
         return deleteWordResult
+    }
+
+    override suspend fun importDeckItems(
+        deckId: Long,
+        fileName: String,
+        fileBytes: ByteArray
+    ): AppResult<Int> = AppResult.Success(0)
+
+    override suspend fun exportDeckItems(deckId: Long): AppResult<ByteArray> {
+        return AppResult.Success(ByteArray(0))
     }
 }
 

@@ -50,6 +50,8 @@ interface DeckRepository {
     suspend fun deleteWord(itemId: Long): AppResult<Unit>
     
     suspend fun importDeckItems(deckId: Long, fileName: String, fileBytes: ByteArray): AppResult<Int>
+
+    suspend fun exportDeckItems(deckId: Long): AppResult<ByteArray>
 }
 
 class DefaultDeckRepository(
@@ -158,6 +160,12 @@ class DefaultDeckRepository(
             val part = okhttp3.MultipartBody.Part.createFormData("file", fileName, requestBody)
             deckApi.importDeckItems(deckId, part)
         }.map { it.imported_count }
+    }
+
+    override suspend fun exportDeckItems(deckId: Long): AppResult<ByteArray> {
+        return safeApiCall(moshi) {
+            deckApi.exportDeckItems(deckId).bytes()
+        }
     }
 
     private fun cleanOptionalText(value: String?): String? {

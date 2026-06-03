@@ -16,10 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Save
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,9 +49,6 @@ fun WordEditorScreen(
     onMeaningChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onExampleChange: (String) -> Unit,
-    onCollocationChange: (String) -> Unit,
-    onRelatedWordsChange: (String) -> Unit,
-    onNoteChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -99,12 +94,8 @@ fun WordEditorScreen(
                             onPronunciationChange = onPronunciationChange,
                             onMeaningChange = onMeaningChange,
                             onDescriptionChange = onDescriptionChange,
-                            onExampleChange = onExampleChange,
-                            onCollocationChange = onCollocationChange,
-                            onRelatedWordsChange = onRelatedWordsChange,
-                            onNoteChange = onNoteChange
+                            onExampleChange = onExampleChange
                         )
-                        StatsNote(isEditMode = uiState.isEditMode)
                         Spacer(modifier = Modifier.height(120.dp))
                     }
                 }
@@ -180,13 +171,6 @@ private fun WordEditorTopBar(onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        IconButton(onClick = {}) {
-            Icon(
-                imageVector = Icons.Outlined.Settings,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }
 
@@ -217,10 +201,7 @@ private fun WordEditorForm(
     onPronunciationChange: (String) -> Unit,
     onMeaningChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-    onExampleChange: (String) -> Unit,
-    onCollocationChange: (String) -> Unit,
-    onRelatedWordsChange: (String) -> Unit,
-    onNoteChange: (String) -> Unit
+    onExampleChange: (String) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -232,7 +213,6 @@ private fun WordEditorForm(
             modifier = Modifier.padding(MinLishSpacing.md),
             verticalArrangement = Arrangement.spacedBy(MinLishSpacing.md)
         ) {
-            DeckContextCard(deckId = uiState.deckId)
             MinLishTextField(
                 value = uiState.word,
                 onValueChange = onWordChange,
@@ -245,8 +225,7 @@ private fun WordEditorForm(
                 value = uiState.pronunciation,
                 onValueChange = onPronunciationChange,
                 label = "Pronunciation",
-                modifier = Modifier.fillMaxWidth(),
-                supportingText = "Audio upload is not supported in backend v1"
+                modifier = Modifier.fillMaxWidth()
             )
             MinLishTextField(
                 value = uiState.meaning,
@@ -269,100 +248,6 @@ private fun WordEditorForm(
                 label = "Examples",
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false
-            )
-            MinLishTextField(
-                value = uiState.collocation,
-                onValueChange = onCollocationChange,
-                label = "Collocations",
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false
-            )
-            MinLishTextField(
-                value = uiState.relatedWordsText,
-                onValueChange = onRelatedWordsChange,
-                label = "Related Words",
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false,
-                supportingText = "Separate with commas or line breaks"
-            )
-            MinLishTextField(
-                value = uiState.note,
-                onValueChange = onNoteChange,
-                label = "Personal Note",
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false
-            )
-        }
-    }
-}
-
-@Composable
-private fun DeckContextCard(deckId: Long) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(MinLishSpacing.md),
-            horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
-                    contentDescription = null,
-                    modifier = Modifier.padding(MinLishSpacing.xs)
-                )
-            }
-            Column {
-                Text(
-                    text = "Target Deck",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Deck ID #$deckId",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatsNote(isEditMode: Boolean) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier.padding(MinLishSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(MinLishSpacing.xs)
-        ) {
-            Text(
-                text = if (isEditMode) "Word Detail" else "Your Stats",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = if (isEditMode) {
-                    "Changes will be saved to your personal deck."
-                } else {
-                    "Adding this word will make your custom deck ready for future learning sessions."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

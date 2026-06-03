@@ -2,6 +2,7 @@ from io import BytesIO
 
 import openpyxl
 from fastapi import UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApiError
@@ -29,25 +30,17 @@ class ImportExportService:
             
             imported_count = 0
             
-            # Giả định cấu trúc cột:
-            # A: Word, B: Pronunciation, C: Meaning, D: Description, E: Example, F: Collocation, G: Related, H: Note
-            # Bắt đầu đọc từ dòng 2 (bỏ qua header)
+            # Expected columns:
+            # A: Word, B: Pronunciation, C: Meaning, D: English Description, E: Example
             for row in sheet.iter_rows(min_row=2, values_only=True):
-                # row is a tuple of values
-                if not row or not row[0]:  # Cột Word không được trống
+                word = self._cell_text(row, 0)
+                meaning = self._cell_text(row, 2)
+                if not word or not meaning:
                     continue
-                    
-                word = str(row[0]).strip()
-                if not word:
-                    continue
-                    
-                pronunciation = str(row[1]).strip() if len(row) > 1 and row[1] else None
-                meaning = str(row[2]).strip() if len(row) > 2 and row[2] else ""
-                description = str(row[3]).strip() if len(row) > 3 and row[3] else None
-                example = str(row[4]).strip() if len(row) > 4 and row[4] else None
-                collocation = str(row[5]).strip() if len(row) > 5 and row[5] else None
-                related_words = str(row[6]).strip() if len(row) > 6 and row[6] else None
-                note = str(row[7]).strip() if len(row) > 7 and row[7] else None
+
+                pronunciation = self._cell_text(row, 1)
+                description = self._cell_text(row, 3)
+                example = self._cell_text(row, 4)
                 
                 vocab_item = VocabularyItem(
                     deck_id=deck.id,
@@ -56,9 +49,6 @@ class ImportExportService:
                     meaning=meaning,
                     description=description,
                     example=example,
-                    collocation=collocation,
-                    related_words=related_words,
-                    note=note,
                 )
                 self.db.add(vocab_item)
                 imported_count += 1
@@ -73,3 +63,38 @@ class ImportExportService:
                 detail=f"Lỗi khi xử lý file Excel: {str(e)}",
                 code="EXCEL_PROCESSING_ERROR",
             )
+
+    def export_excel(self, deck: Deck) -> BytesIO:
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Vocabulary"
+        sheet.append(["Word", "Pronunciation", "Meaning", "English Description", "Example"])
+
+        items = self.db.scalars(
+            select(VocabularyItem)
+            .where(VocabularyItem.deck_id == deck.id)
+            .order_by(VocabularyItem.word, VocabularyItem.id),
+        ).all()
+
+        for item in items:
+            sheet.append(
+                [
+                    item.word,
+                    item.pronunciation or "",
+                    item.meaning,
+                    item.description or "",
+                    item.example or "",
+                ],
+            )
+
+        output = BytesIO()
+        workbook.save(output)
+        output.seek(0)
+        return output
+
+    @staticmethod
+    def _cell_text(row: tuple[object, ...], index: int) -> str | None:
+        if len(row) <= index or row[index] is None:
+            return None
+        value = str(row[index]).strip()
+        return value or None

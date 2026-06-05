@@ -44,7 +44,7 @@ class AuthService:
         if existing_user is not None:
             raise ApiError(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email đã được sử dụng.",
+                detail="This email is already registered.",
                 code="EMAIL_ALREADY_EXISTS",
             )
 
@@ -61,7 +61,7 @@ class AuthService:
         otp = self._set_email_otp(user)
         self._send_email_safely(
             lambda: self.email_service.send_verification_otp(user.email, otp),
-            "Không thể gửi mã xác nhận email.",
+            "Could not send the verification code.",
         )
 
         response = self._create_auth_response(user)
@@ -167,7 +167,7 @@ class AuthService:
         otp = self._set_email_otp(user)
         self._send_email_safely(
             lambda: self.email_service.send_verification_otp(user.email, otp),
-            "Không thể gửi lại mã xác nhận email.",
+            "Could not resend the verification code.",
         )
         self.db.commit()
         return MessageResponse(message="Verification OTP sent.")
@@ -178,7 +178,7 @@ class AuthService:
             otp = self._set_password_reset_otp(user)
             self._send_email_safely(
                 lambda: self.email_service.send_password_reset_otp(user.email, otp),
-                "Không thể gửi mã đặt lại mật khẩu.",
+                "Could not send the password reset code.",
             )
             self.db.commit()
         return MessageResponse(message="If the email exists, a reset code has been sent.")
@@ -272,7 +272,7 @@ class AuthService:
     def _invalid_credentials_error() -> ApiError:
         return ApiError(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email hoặc mật khẩu không đúng.",
+            detail="Email or password is incorrect.",
             code="INVALID_CREDENTIALS",
         )
 
@@ -288,7 +288,7 @@ class AuthService:
     def _invalid_refresh_token_error() -> ApiError:
         return ApiError(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token không hợp lệ hoặc đã hết hạn.",
+            detail="Refresh token is invalid or expired.",
             code="INVALID_REFRESH_TOKEN",
         )
 
@@ -296,7 +296,7 @@ class AuthService:
     def _invalid_otp_error() -> ApiError:
         return ApiError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mã xác nhận email không đúng hoặc đã hết hạn.",
+            detail="The email verification code is incorrect or expired.",
             code="INVALID_EMAIL_OTP",
         )
 
@@ -304,6 +304,6 @@ class AuthService:
     def _invalid_reset_otp_error() -> ApiError:
         return ApiError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mã đặt lại mật khẩu không đúng hoặc đã hết hạn.",
+            detail="The password reset code is incorrect or expired.",
             code="INVALID_PASSWORD_RESET_OTP",
         )

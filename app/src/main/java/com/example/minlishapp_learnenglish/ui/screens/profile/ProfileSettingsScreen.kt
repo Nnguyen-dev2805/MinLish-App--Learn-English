@@ -357,7 +357,7 @@ private fun NotificationSettingsCard(
     ) {
         ToggleSettingRow(
             icon = Icons.Outlined.Alarm,
-            title = "Due word notifications",
+            title = "Daily study reminder",
             subtitle = "Remind me when it is time to study each day.",
             checked = uiState.pushEnabled,
             onCheckedChange = onPushEnabledChange
@@ -365,7 +365,7 @@ private fun NotificationSettingsCard(
         ToggleSettingRow(
             icon = Icons.Outlined.Email,
             title = "Email reminder",
-            subtitle = "Saved on the backend; real email sending depends on SMTP setup.",
+            subtitle = "Receive email reminders for your learning schedule.",
             checked = uiState.emailEnabled,
             onCheckedChange = onEmailEnabledChange
         )

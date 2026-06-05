@@ -19,7 +19,7 @@ def get_current_user(
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise ApiError(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Thiếu access token.",
+            detail="Access token is missing.",
             code="UNAUTHORIZED",
         )
 
@@ -27,7 +27,7 @@ def get_current_user(
     if user_id is None:
         raise ApiError(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token không hợp lệ hoặc đã hết hạn.",
+            detail="Access token is invalid or expired.",
             code="UNAUTHORIZED",
         )
 
@@ -35,7 +35,7 @@ def get_current_user(
     if user is None:
         raise ApiError(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Người dùng không tồn tại.",
+            detail="User does not exist.",
             code="UNAUTHORIZED",
         )
     if not user.email_verified:

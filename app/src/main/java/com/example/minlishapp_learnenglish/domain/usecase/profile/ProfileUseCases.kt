@@ -43,6 +43,7 @@ class LogoutUseCase(
         }
 
         val result = authRepository.logout(refreshToken)
+        // kết quả trả về true hay false thì vẫn thoát app
         tokenStorage.clearTokens()
         return result
     }

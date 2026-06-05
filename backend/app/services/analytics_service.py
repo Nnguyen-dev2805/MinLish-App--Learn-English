@@ -88,6 +88,7 @@ class AnalyticsService:
                 UserWordProgress.user_id == user.id,
                 UserWordProgress.due_at.is_not(None),
                 UserWordProgress.due_at <= now,
+                UserWordProgress.status != "mastered",
             ),
         ) or 0
 

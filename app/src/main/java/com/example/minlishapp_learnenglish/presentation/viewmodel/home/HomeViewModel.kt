@@ -29,7 +29,7 @@ data class HomeUiState(
 )
 
 sealed interface HomeEffect {
-    data object NavigateLearn : HomeEffect
+    data object NavigateReviewDue : HomeEffect
     data class ShowSnackbar(val message: String) : HomeEffect
 }
 
@@ -58,9 +58,9 @@ class HomeViewModel(
         loadHomeInternal(isRefresh = true)
     }
 
-    fun startLearning() {
+    fun startReview() {
         viewModelScope.launch {
-            _effects.emit(HomeEffect.NavigateLearn)
+            _effects.emit(HomeEffect.NavigateReviewDue)
         }
     }
 

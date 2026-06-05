@@ -27,7 +27,7 @@ import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
 @Composable
 fun DailyPlanCard(
     dailyPlan: DailyLearningPlan,
-    onStartLearning: () -> Unit,
+    onStartReview: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -58,7 +58,7 @@ fun DailyPlanCard(
                 )
             }
             Button(
-                onClick = onStartLearning,
+                onClick = onStartReview,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(999.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -72,7 +72,7 @@ fun DailyPlanCard(
                     modifier = Modifier.padding(vertical = MinLishSpacing.xs)
                 ) {
                     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = null)
-                    Text(text = "Start Learning", style = MaterialTheme.typography.labelLarge)
+                    Text(text = "Review Due", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

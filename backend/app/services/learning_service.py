@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import status
 from sqlalchemy import exists, func, or_, select
@@ -16,7 +16,9 @@ from app.schemas.learning import (
     SubmitReviewRequest,
     SubmitReviewResponse,
 )
-from app.services.sm2_service import DEFAULT_EASE_FACTOR, SrsState, apply_sm2_review
+from app.services.sm2_service import DEFAULT_EASE_FACTOR
+
+MASTERED_DUE_DAYS = 3650
 
 
 class LearningService:
@@ -46,16 +48,41 @@ class LearningService:
             if requested_mode != "deck_all":
                 raise ApiError(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Chế độ học deck không hợp lệ.",
+                    detail="Invalid deck learning mode.",
                     code="INVALID_LEARNING_MODE",
                 )
             return self._get_all_cards_in_deck(user=user, deck_id=deck_id)
 
+        requested_mode = (mode or "mixed").lower()
+        if requested_mode == "new":
+            return ReviewCardsResponse(items=self._get_new_cards(user))
+        if requested_mode == "due":
+            return ReviewCardsResponse(items=self._get_due_cards(user))
+        if requested_mode not in {"mixed", "all"}:
+            raise ApiError(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid learning mode.",
+                code="INVALID_LEARNING_MODE",
+            )
+
+        return ReviewCardsResponse(items=self._get_mixed_cards(user))
+
+    def _get_mixed_cards(self, user: User) -> list[ReviewCardResponse]:
         now = self._utc_now()
         due_count = self._count_due_reviews(user, now)
         limit = max(user.daily_new_words or 10, 20)
         due_limit = min(due_count, limit)
+        cards = self._get_due_cards(user=user, limit=due_limit)
 
+        remaining = max(0, limit - len(cards))
+        if remaining > 0:
+            cards.extend(self._get_new_cards(user=user, limit=remaining))
+
+        return cards
+
+    def _get_due_cards(self, user: User, limit: int | None = None) -> list[ReviewCardResponse]:
+        now = self._utc_now()
+        card_limit = limit if limit is not None else max(user.daily_new_words or 10, 20)
         due_rows = self.db.execute(
             select(VocabularyItem, UserWordProgress.due_at)
             .join(UserWordProgress, UserWordProgress.vocabulary_item_id == VocabularyItem.id)
@@ -64,32 +91,32 @@ class LearningService:
                 UserWordProgress.user_id == user.id,
                 UserWordProgress.due_at.is_not(None),
                 UserWordProgress.due_at <= now,
+                UserWordProgress.status != "mastered",
                 self._visible_deck_filter(user),
             )
             .order_by(UserWordProgress.due_at.asc(), VocabularyItem.id.asc())
-            .limit(due_limit),
+            .limit(card_limit),
         ).all()
 
-        cards = [
+        return [
             self._review_card_response(item=item, is_new=False, due_at=due_at)
             for item, due_at in due_rows
         ]
 
-        remaining = max(0, limit - len(cards))
-        if remaining > 0:
-            new_items = self.db.scalars(
-                select(VocabularyItem)
-                .join(Deck, VocabularyItem.deck_id == Deck.id)
-                .where(self._visible_deck_filter(user), ~self._progress_exists_for_user(user))
-                .order_by(Deck.source_unit.asc(), VocabularyItem.anki_number.asc(), VocabularyItem.id.asc())
-                .limit(remaining),
-            ).all()
-            cards.extend(
-                self._review_card_response(item=item, is_new=True, due_at=None)
-                for item in new_items
-            )
+    def _get_new_cards(self, user: User, limit: int | None = None) -> list[ReviewCardResponse]:
+        card_limit = limit if limit is not None else user.daily_new_words or 10
+        new_items = self.db.scalars(
+            select(VocabularyItem)
+            .join(Deck, VocabularyItem.deck_id == Deck.id)
+            .where(self._visible_deck_filter(user), ~self._progress_exists_for_user(user))
+            .order_by(Deck.source_unit.asc(), VocabularyItem.anki_number.asc(), VocabularyItem.id.asc())
+            .limit(card_limit),
+        ).all()
 
-        return ReviewCardsResponse(items=cards)
+        return [
+            self._review_card_response(item=item, is_new=True, due_at=None)
+            for item in new_items
+        ]
 
     def _get_all_cards_in_deck(self, user: User, deck_id: int) -> ReviewCardsResponse:
         deck = self.db.scalar(
@@ -144,21 +171,12 @@ class LearningService:
             self.db.add(progress)
             self.db.flush()
 
-        srs_result = apply_sm2_review(
-            SrsState(
-                repetitions=progress.repetitions,
-                interval_days=progress.interval_days,
-                ease_factor=progress.ease_factor,
-            ),
-            rating=request.rating,
-            reviewed_at=now,
-        )
-        progress.repetitions = srs_result.repetitions
-        progress.interval_days = srs_result.interval_days
-        progress.ease_factor = srs_result.ease_factor
-        progress.due_at = srs_result.due_at
+        is_first_learning_rating = progress.status == "new" and progress.last_reviewed_at is None
+        if is_first_learning_rating:
+            next_due_at = self._apply_initial_learning_rating(progress, request.rating, now)
+        else:
+            next_due_at = self._apply_review_due_rating(progress, request.rating, now)
         progress.last_reviewed_at = now
-        progress.status = srs_result.status
 
         is_correct = request.rating.value != "Again"
         review_log = ReviewLog(
@@ -167,8 +185,8 @@ class LearningService:
             rating=request.rating.value,
             is_correct=is_correct,
             response_ms=request.response_ms,
-            ease_factor_after=srs_result.ease_factor,
-            next_due_at=srs_result.due_at,
+            ease_factor_after=progress.ease_factor,
+            next_due_at=next_due_at,
             created_at=now,
         )
         self.db.add(review_log)
@@ -182,8 +200,89 @@ class LearningService:
             repetitions=progress.repetitions,
             interval_days=progress.interval_days,
             ease_factor=progress.ease_factor,
-            next_due_at=srs_result.due_at,
+            next_due_at=next_due_at,
         )
+
+    def _apply_initial_learning_rating(
+        self,
+        progress: UserWordProgress,
+        rating,
+        reviewed_at: datetime,
+    ) -> datetime:
+        if rating.value == "Again":
+            progress.status = "hard"
+            progress.repetitions = max(progress.repetitions, 1)
+            progress.interval_days = 0
+            progress.due_at = reviewed_at + timedelta(minutes=10)
+            return progress.due_at
+
+        initial_level = {
+            "Hard": "hard",
+            "Good": "good",
+            "Easy": "easy",
+        }[rating.value]
+        return self._apply_level_schedule(progress, initial_level, reviewed_at)
+
+    def _apply_review_due_rating(
+        self,
+        progress: UserWordProgress,
+        rating,
+        reviewed_at: datetime,
+    ) -> datetime:
+        if rating.value == "Again":
+            if progress.status not in {"hard", "good", "easy", "mastered"}:
+                progress.status = "hard"
+            progress.due_at = reviewed_at + timedelta(minutes=10)
+            return progress.due_at
+
+        current_level = self._current_review_level(progress)
+        next_level = {
+            "hard": "good",
+            "good": "easy",
+            "easy": "mastered",
+            "mastered": "mastered",
+        }[current_level]
+
+        return self._apply_level_schedule(progress, next_level, reviewed_at)
+
+    def _apply_level_schedule(
+        self,
+        progress: UserWordProgress,
+        level: str,
+        reviewed_at: datetime,
+    ) -> datetime:
+        progress.status = level
+        progress.ease_factor = progress.ease_factor or DEFAULT_EASE_FACTOR
+        if level == "hard":
+            progress.repetitions = max(progress.repetitions, 1)
+            progress.interval_days = 2
+            progress.due_at = reviewed_at + timedelta(days=2)
+        elif level == "good":
+            progress.repetitions = max(progress.repetitions, 2)
+            progress.interval_days = 4
+            progress.due_at = reviewed_at + timedelta(days=4)
+        elif level == "easy":
+            progress.repetitions = max(progress.repetitions, 3)
+            progress.interval_days = 7
+            progress.due_at = reviewed_at + timedelta(days=7)
+        else:
+            progress.repetitions = max(progress.repetitions, 4)
+            progress.interval_days = MASTERED_DUE_DAYS
+            progress.due_at = reviewed_at + timedelta(days=MASTERED_DUE_DAYS)
+        return progress.due_at
+
+    def _current_review_level(self, progress: UserWordProgress) -> str:
+        if progress.status in {"hard", "good", "easy", "mastered"}:
+            return progress.status
+        if progress.status == "again":
+            return "hard"
+        if progress.repetitions >= 3:
+            return "easy"
+        if progress.status == "review" or progress.repetitions >= 2:
+            return "good"
+        if progress.status == "learning" or progress.repetitions >= 1:
+            return "hard"
+        return "hard"
 
     def _count_visible_items(self, user: User) -> int:
         return self.db.scalar(
@@ -202,6 +301,7 @@ class LearningService:
                 UserWordProgress.user_id == user.id,
                 UserWordProgress.due_at.is_not(None),
                 UserWordProgress.due_at <= reviewed_at,
+                UserWordProgress.status != "mastered",
                 self._visible_deck_filter(user),
             ),
         ) or 0

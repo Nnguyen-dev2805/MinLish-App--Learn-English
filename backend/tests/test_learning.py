@@ -97,8 +97,8 @@ def test_submit_good_creates_progress_and_review_log(client: TestClient) -> None
     assert body["vocabulary_item_id"] == anxious_id
     assert body["rating"] == "Good"
     assert body["is_correct"] is True
-    assert body["repetitions"] == 1
-    assert body["interval_days"] == 1
+    assert body["repetitions"] == 2
+    assert body["interval_days"] == 4
     assert body["ease_factor"] == 2.5
     assert body["next_due_at"]
 
@@ -107,16 +107,16 @@ def test_submit_good_creates_progress_and_review_log(client: TestClient) -> None
             select(UserWordProgress).where(UserWordProgress.vocabulary_item_id == anxious_id),
         )
         assert progress is not None
-        assert progress.repetitions == 1
-        assert progress.interval_days == 1
-        assert progress.status == "learning"
+        assert progress.repetitions == 2
+        assert progress.interval_days == 4
+        assert progress.status == "good"
         review_logs = db.scalars(select(ReviewLog)).all()
         assert len(review_logs) == 1
         assert review_logs[0].rating == "Good"
         assert review_logs[0].is_correct is True
 
 
-def test_submit_again_resets_existing_progress(client: TestClient) -> None:
+def test_submit_again_keeps_existing_level_and_schedules_soon(client: TestClient) -> None:
     seed_ids = _seed_anki_decks(client)
     headers = _auth_headers(client)
     anxious_id = seed_ids["anxious_item_id"]
@@ -140,8 +140,8 @@ def test_submit_again_resets_existing_progress(client: TestClient) -> None:
     body = again_response.json()
     assert body["rating"] == "Again"
     assert body["is_correct"] is False
-    assert body["repetitions"] == 0
-    assert body["interval_days"] == 0
+    assert body["repetitions"] == 2
+    assert body["interval_days"] == 4
 
     next_due_at = datetime.fromisoformat(body["next_due_at"])
     assert before_again + timedelta(minutes=9, seconds=50) <= next_due_at
@@ -152,10 +152,166 @@ def test_submit_again_resets_existing_progress(client: TestClient) -> None:
             select(UserWordProgress).where(UserWordProgress.vocabulary_item_id == anxious_id),
         )
         assert progress is not None
-        assert progress.repetitions == 0
-        assert progress.interval_days == 0
-        assert progress.status == "learning"
+        assert progress.repetitions == 2
+        assert progress.interval_days == 4
+        assert progress.status == "good"
         assert len(db.scalars(select(ReviewLog)).all()) == 2
+
+
+def test_submit_easy_for_new_word_creates_easy_progress(client: TestClient) -> None:
+    seed_ids = _seed_anki_decks(client)
+    headers = _auth_headers(client)
+    anxious_id = seed_ids["anxious_item_id"]
+
+    response = client.post(
+        "/api/v1/learning/reviews",
+        headers=headers,
+        json={"vocabulary_item_id": anxious_id, "rating": "Easy", "response_ms": 1800},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["rating"] == "Easy"
+    assert body["interval_days"] == 7
+
+    with _session(client) as db:
+        progress = db.scalar(
+            select(UserWordProgress).where(UserWordProgress.vocabulary_item_id == anxious_id),
+        )
+        assert progress is not None
+        assert progress.status == "easy"
+        assert progress.interval_days == 7
+
+
+def test_review_cards_mode_new_returns_only_unlearned_cards(client: TestClient) -> None:
+    seed_ids = _seed_anki_decks(client)
+    headers = _auth_headers(client)
+
+    client.post(
+        "/api/v1/learning/reviews",
+        headers=headers,
+        json={"vocabulary_item_id": seed_ids["anxious_item_id"], "rating": "Good", "response_ms": 1500},
+    )
+
+    response = client.get("/api/v1/learning/review-cards?mode=new", headers=headers)
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert len(items) == 10
+    assert seed_ids["anxious_item_id"] not in [item["id"] for item in items]
+    assert all(item["is_new"] for item in items)
+
+
+def test_review_cards_mode_new_respects_daily_new_words(client: TestClient) -> None:
+    _seed_anki_decks(client)
+    headers = _auth_headers(client)
+
+    with _session(client) as db:
+        user = db.scalar(select(User).where(User.email == "learner@example.com"))
+        assert user is not None
+        user.daily_new_words = 5
+        db.commit()
+
+    response = client.get("/api/v1/learning/review-cards?mode=new", headers=headers)
+
+    assert response.status_code == 200
+    assert len(response.json()["items"]) == 5
+
+
+def test_review_cards_mode_due_returns_only_due_non_mastered_cards(client: TestClient) -> None:
+    seed_ids = _seed_anki_decks(client)
+    headers = _auth_headers(client)
+    user_id = _user_id_for_email(client, "learner@example.com")
+    anxious_id = seed_ids["anxious_item_id"]
+
+    with _session(client) as db:
+        mastered_item = db.scalar(
+            select(VocabularyItem).where(VocabularyItem.word == "word-602"),
+        )
+        assert mastered_item is not None
+        mastered_id = mastered_item.id
+        db.add_all(
+            [
+                UserWordProgress(
+                    user_id=user_id,
+                    vocabulary_item_id=anxious_id,
+                    repetitions=1,
+                    interval_days=1,
+                    ease_factor=2.5,
+                    due_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                    status="hard",
+                ),
+                UserWordProgress(
+                    user_id=user_id,
+                    vocabulary_item_id=mastered_id,
+                    repetitions=3,
+                    interval_days=3650,
+                    ease_factor=2.5,
+                    due_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                    status="mastered",
+                ),
+            ],
+        )
+        db.commit()
+
+    response = client.get("/api/v1/learning/review-cards?mode=due", headers=headers)
+
+    assert response.status_code == 200
+    ids = [item["id"] for item in response.json()["items"]]
+    assert anxious_id in ids
+    assert mastered_id not in ids
+
+
+def test_review_due_correct_answers_upgrade_level_until_mastered(client: TestClient) -> None:
+    seed_ids = _seed_anki_decks(client)
+    headers = _auth_headers(client)
+    user_id = _user_id_for_email(client, "learner@example.com")
+    anxious_id = seed_ids["anxious_item_id"]
+
+    with _session(client) as db:
+        db.add(
+            UserWordProgress(
+                user_id=user_id,
+                vocabulary_item_id=anxious_id,
+                repetitions=1,
+                interval_days=2,
+                ease_factor=2.5,
+                due_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                status="hard",
+            ),
+        )
+        db.commit()
+
+    first_response = client.post(
+        "/api/v1/learning/reviews",
+        headers=headers,
+        json={"vocabulary_item_id": anxious_id, "rating": "Good", "response_ms": 1200},
+    )
+    assert first_response.status_code == 200
+    assert first_response.json()["interval_days"] == 4
+
+    second_response = client.post(
+        "/api/v1/learning/reviews",
+        headers=headers,
+        json={"vocabulary_item_id": anxious_id, "rating": "Good", "response_ms": 1100},
+    )
+    assert second_response.status_code == 200
+    assert second_response.json()["interval_days"] == 7
+
+    third_response = client.post(
+        "/api/v1/learning/reviews",
+        headers=headers,
+        json={"vocabulary_item_id": anxious_id, "rating": "Good", "response_ms": 1000},
+    )
+    assert third_response.status_code == 200
+    assert third_response.json()["interval_days"] == 3650
+
+    with _session(client) as db:
+        progress = db.scalar(
+            select(UserWordProgress).where(UserWordProgress.vocabulary_item_id == anxious_id),
+        )
+        assert progress is not None
+        assert progress.status == "mastered"
 
 
 def test_review_cards_returns_due_cards_first(client: TestClient) -> None:

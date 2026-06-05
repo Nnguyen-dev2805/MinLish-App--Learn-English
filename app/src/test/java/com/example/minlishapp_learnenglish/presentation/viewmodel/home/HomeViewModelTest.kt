@@ -78,7 +78,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `start learning emits navigate learn effect`() = runTest {
+    fun `start review emits navigate review due effect`() = runTest {
         val viewModel = HomeViewModel(
             LoadHomeUseCase(
                 authRepository = FakeAuthRepository(),
@@ -91,10 +91,10 @@ class HomeViewModelTest {
             viewModel.effects.toList(effects)
         }
 
-        viewModel.startLearning()
+        viewModel.startReview()
         advanceUntilIdle()
 
-        assertEquals(listOf(HomeEffect.NavigateLearn), effects)
+        assertEquals(listOf(HomeEffect.NavigateReviewDue), effects)
     }
 }
 

@@ -8,7 +8,7 @@ class AuthInterceptor(
     private val tokenStorage: TokenStorage
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val originalRequest = chain.request()
+        val originalRequest = chain.request() // lấy request gốc có thể chưa có header Auth
         val accessToken = tokenStorage.getAccessToken()
         val request = if (accessToken.isNullOrBlank() || originalRequest.header(AUTHORIZATION) != null) {
             originalRequest

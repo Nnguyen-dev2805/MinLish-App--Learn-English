@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,9 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.home.HomeViewM
 import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardViewModel
+import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueEffect
+import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueEvent
+import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueViewModel
 import com.example.minlishapp_learnenglish.domain.model.ReviewSessionSummary
 import com.example.minlishapp_learnenglish.presentation.viewmodel.progress.ProgressEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.progress.ProgressEvent
@@ -68,10 +72,12 @@ import com.example.minlishapp_learnenglish.ui.screens.decks.DeckDetailScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckListScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.WordEditorScreen
 import com.example.minlishapp_learnenglish.ui.screens.learning.FlashcardLearningScreen
+import com.example.minlishapp_learnenglish.ui.screens.learning.ReviewDueScreen
 import com.example.minlishapp_learnenglish.ui.screens.learning.ReviewResultsScreen
 import com.example.minlishapp_learnenglish.ui.screens.home.HomeScreen
 import com.example.minlishapp_learnenglish.ui.screens.progress.ProgressAnalyticsScreen
 import com.example.minlishapp_learnenglish.ui.screens.profile.ProfileSettingsScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavGraph(
@@ -305,19 +311,31 @@ fun AppNavGraph(
             )
         }
 
-        composable(Routes.Home) {
+        composable(Routes.Home) { backStackEntry ->
             val viewModel: HomeViewModel = viewModel(
                 factory = viewModelFactory {
                     HomeViewModel(appContainer.loadHomeUseCase)
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
+            // dùng để hiển thị lỗi ở dưới màn hình
             val snackbarHostState = remember { SnackbarHostState() }
+            val refreshHome by backStackEntry.savedStateHandle
+                .getStateFlow("refreshHome", false)
+                .collectAsState()
+
+            LaunchedEffect(refreshHome) {
+                if (refreshHome) {
+                    viewModel.refresh()
+                    backStackEntry.savedStateHandle["refreshHome"] = false
+                }
+            }
 
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        HomeEffect.NavigateLearn -> navController.navigate(Routes.Learn)
+                        HomeEffect.NavigateReviewDue -> navController.navigate(Routes.ReviewDue)
+                        // is ở đây dùng để nếu effect là loại ShowSnackBar thì Kotlin tự hiểu effect có message, lấy effect.message, đưa message đó vào snackbar
                         is HomeEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                     }
                 }
@@ -326,7 +344,7 @@ fun AppNavGraph(
             Box {
                 HomeScreen(
                     uiState = uiState,
-                    onStartLearning = viewModel::startLearning,
+                    onStartReview = viewModel::startReview,
                     onRetry = viewModel::retry,
                     onRefresh = viewModel::refresh
                 )
@@ -528,17 +546,21 @@ fun AppNavGraph(
                 factory = viewModelFactory {
                     FlashcardViewModel(
                         getReviewCardsUseCase = appContainer.getReviewCardsUseCase,
-                        submitReviewUseCase = appContainer.submitReviewUseCase
+                        submitReviewUseCase = appContainer.submitReviewUseCase,
+                        mode = "new"
                     )
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
             val snackbarHostState = remember { SnackbarHostState() }
+            val snackbarScope = rememberCoroutineScope()
 
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        FlashcardEffect.NavigateBack -> navController.popBackStack()
+                        FlashcardEffect.NavigateBack -> {
+                            navController.navigateHomeFromLearning()
+                        }
                         is FlashcardEffect.NavigateReviewResults -> {
                             reviewSessionSummary = effect.summary
                             navController.navigate(Routes.ReviewResults) {
@@ -562,7 +584,56 @@ fun AppNavGraph(
                     onNextCard = { viewModel.onEvent(FlashcardEvent.NextCard) },
                     onRating = { rating ->
                         viewModel.onEvent(FlashcardEvent.SubmitRating(rating))
+                    },
+                    onAudioError = { message ->
+                        snackbarScope.launch { snackbarHostState.showSnackbar(message) }
                     }
+                )
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+        }
+        composable(Routes.ReviewDue) {
+            val viewModel: ReviewDueViewModel = viewModel(
+                key = "review-due",
+                factory = viewModelFactory {
+                    ReviewDueViewModel(
+                        getReviewCardsUseCase = appContainer.getReviewCardsUseCase,
+                        submitReviewUseCase = appContainer.submitReviewUseCase
+                    )
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        ReviewDueEffect.NavigateBack -> {
+                            navController.navigateHomeFromLearning()
+                        }
+                        is ReviewDueEffect.NavigateReviewResults -> {
+                            reviewSessionSummary = effect.summary
+                            navController.navigate(Routes.ReviewResults) {
+                                popUpTo(Routes.ReviewDue) { inclusive = true }
+                            }
+                        }
+                        is ReviewDueEffect.ShowSnackbar -> {
+                            snackbarHostState.showSnackbar(effect.message)
+                        }
+                    }
+                }
+            }
+
+            Box {
+                ReviewDueScreen(
+                    uiState = uiState,
+                    onBack = { viewModel.onEvent(ReviewDueEvent.BackClicked) },
+                    onRetry = { viewModel.onEvent(ReviewDueEvent.Retry) },
+                    onChoiceSelected = { index -> viewModel.onEvent(ReviewDueEvent.ChoiceSelected(index)) },
+                    onSubmitAnswer = { viewModel.onEvent(ReviewDueEvent.SubmitAnswer) }
                 )
                 SnackbarHost(
                     hostState = snackbarHostState,
@@ -592,11 +663,14 @@ fun AppNavGraph(
             )
             val uiState by viewModel.uiState.collectAsState()
             val snackbarHostState = remember { SnackbarHostState() }
+            val snackbarScope = rememberCoroutineScope()
 
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        FlashcardEffect.NavigateBack -> navController.popBackStack()
+                        FlashcardEffect.NavigateBack -> {
+                            navController.navigateHomeFromLearning()
+                        }
                         is FlashcardEffect.NavigateReviewResults -> {
                             reviewSessionSummary = effect.summary
                             navController.navigate(Routes.ReviewResults) {
@@ -620,6 +694,9 @@ fun AppNavGraph(
                     onNextCard = { viewModel.onEvent(FlashcardEvent.NextCard) },
                     onRating = { rating ->
                         viewModel.onEvent(FlashcardEvent.SubmitRating(rating))
+                    },
+                    onAudioError = { message ->
+                        snackbarScope.launch { snackbarHostState.showSnackbar(message) }
                     }
                 )
                 SnackbarHost(
@@ -640,10 +717,7 @@ fun AppNavGraph(
                 },
                 onBackHome = {
                     reviewSessionSummary = null
-                    navController.navigate(Routes.Home) {
-                        popUpTo(Routes.Home) { inclusive = false }
-                        launchSingleTop = true
-                    }
+                    navController.navigateHomeFromLearning()
                 }
             )
         }
@@ -743,6 +817,21 @@ fun AppNavGraph(
     }
 }
 
+private fun NavHostController.navigateHomeFromLearning() {
+    requestHomeRefresh()
+    navigate(Routes.Home) {
+        popUpTo(Routes.Home) { inclusive = false }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+fun NavHostController.requestHomeRefresh() {
+    runCatching {
+        getBackStackEntry(Routes.Home).savedStateHandle["refreshHome"] = true
+    }
+}
+
 @Composable
 private fun WordEditorRoute(
     navController: NavHostController,
@@ -816,8 +905,10 @@ private fun NavHostController.navigateReplacingCurrentAuth(
     currentRoute: String,
     targetRoute: String
 ) {
+
     navigate(targetRoute) {
-        popUpTo(currentRoute) { inclusive = true }
-        launchSingleTop = true
+        popUpTo(currentRoute) { inclusive = true } //popUpto xoá các màn hình trong back stack cho tới route được chỉ định - inclusive trức xoá luôn currentRoute
+        // vì vậy khi người dùng bấm Back từ Home, app sẽ không quay trở lại Login
+        launchSingleTop = true // dòng này tránh tạo nhiều bản sao của cùng 1 màn hình ở trên cùng back stack
     }
 }

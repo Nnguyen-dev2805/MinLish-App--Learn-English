@@ -10,6 +10,7 @@ object Routes {
     const val Home = "main/home"
     const val Decks = "main/decks"
     const val Learn = "main/learn"
+    const val ReviewDue = "main/home/review-due"
     const val LearnDeck = "main/learn/deck/{deckId}/{mode}"
     const val Progress = "main/progress"
     const val Profile = "main/profile"

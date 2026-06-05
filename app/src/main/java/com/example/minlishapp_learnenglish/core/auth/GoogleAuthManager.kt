@@ -18,8 +18,7 @@ class GoogleAuthManager(private val context: Context) {
             .digest(UUID.randomUUID().toString().toByteArray())
             .joinToString("") { "%02x".format(it) }
 
-        // Use a placeholder since user hasn't set up Google Cloud Console yet
-        val serverClientId = "960908040534-segh4hn131ckkudgvl4pv5pe51g6ep42.apps.googleusercontent.com"
+        val serverClientId = "689537149616-pdthvfqmgmps612l9jmegg021fmv7qma.apps.googleusercontent.com"
         
         val googleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)

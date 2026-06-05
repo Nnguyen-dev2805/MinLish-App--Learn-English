@@ -89,16 +89,6 @@ fun SetupScreen(
                 textAlign = TextAlign.Center
             )
 
-            if (uiState.errorMessage != null) {
-                Text(
-                    text = uiState.errorMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            }
-
             Spacer(modifier = Modifier.height(MinLishSpacing.xs))
 
             SetupBentoCard(

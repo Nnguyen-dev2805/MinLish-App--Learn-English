@@ -13,7 +13,7 @@ class EncryptedTokenStorage(
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION") // Tắt cảnh báo
     private val preferences = EncryptedSharedPreferences.create(
         appContext,
         FILE_NAME,

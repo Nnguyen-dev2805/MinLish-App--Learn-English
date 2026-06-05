@@ -65,6 +65,11 @@ class AppContainer(context: Context) {
             moshi = moshi
         )
 
+    // hãy đọc interface rồi nhìn các annotation rồi tạo ra 1 object thật có thể gọi API
+    // kết quả trả về là 1 object kiểu AuthApi
+    // những API này sử dụng authenticate làm bộ máy gọi HTTP
+    // tạo ra 1 implemetation thật của API, Implementation này sử dụng cấu hình của authen để gửi request
+    // Ví dụ: deckAPI.getDecks() thì request sẽ đi qua deckapi method -> retroflit -> moshi -> OkHttpClient -> AuthInterceptor -> TokenAuthenticator nếu bị 401 -> FastAPI backend
     private val authenticatedAuthApi: AuthApi = authenticatedRetrofit
         .create(AuthApi::class.java)
     private val learningApi: LearningApi = authenticatedRetrofit

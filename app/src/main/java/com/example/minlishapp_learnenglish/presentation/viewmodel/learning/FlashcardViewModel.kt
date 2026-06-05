@@ -25,6 +25,7 @@ data class FlashcardUiState(
     val currentIndex: Int = 0,
     val isAnswerVisible: Boolean = false,
     val errorMessage: String? = null,
+    val isReviewSession: Boolean = false,
     val summary: ReviewSessionSummary = ReviewSessionSummary()
 ) {
     val currentCard: ReviewCard?
@@ -33,12 +34,21 @@ data class FlashcardUiState(
     val currentPosition: Int
         get() = when {
             cards.isEmpty() -> 0
+            isReviewSession && summary.totalCards > 0 ->
+                (summary.reviewedCards + 1).coerceAtMost(summary.totalCards)
             currentIndex >= cards.size -> cards.size
             else -> currentIndex + 1
         }
 
     val progressFraction: Float
-        get() = if (cards.isEmpty()) 0f else currentPosition.toFloat() / cards.size.toFloat()
+        get() {
+            val total = if (isReviewSession && summary.totalCards > 0) {
+                summary.totalCards
+            } else {
+                cards.size
+            }
+            return if (total == 0) 0f else currentPosition.toFloat() / total.toFloat()
+        }
 
     val isEmpty: Boolean
         get() = !isLoading && errorMessage == null && cards.isEmpty()
@@ -77,6 +87,9 @@ class FlashcardViewModel(
     val effects: SharedFlow<FlashcardEffect> = _effects.asSharedFlow()
 
     private var cardStartedAtMs: Long = System.currentTimeMillis()
+    private val wrongAttemptsByCardId = mutableMapOf<Long, Int>()
+    private val isDueReviewSession: Boolean
+        get() = mode == "due"
 
     init {
         loadCards()
@@ -85,7 +98,7 @@ class FlashcardViewModel(
     fun onEvent(event: FlashcardEvent) {
         when (event) {
             FlashcardEvent.Retry -> loadCards()
-            FlashcardEvent.ShowAnswer -> showAnswer()
+            FlashcardEvent.ShowAnswer -> toggleAnswer()
             FlashcardEvent.PreviousCard -> goToPreviousCard()
             FlashcardEvent.NextCard -> goToNextCard()
             FlashcardEvent.BackClicked -> navigateBack()
@@ -95,6 +108,7 @@ class FlashcardViewModel(
 
     fun loadCards() {
         viewModelScope.launch {
+            wrongAttemptsByCardId.clear()
             _uiState.update {
                 it.copy(
                     isLoading = true,
@@ -114,6 +128,7 @@ class FlashcardViewModel(
                             currentIndex = 0,
                             isAnswerVisible = false,
                             errorMessage = null,
+                            isReviewSession = isDueReviewSession,
                             summary = ReviewSessionSummary(totalCards = result.data.size)
                         )
                     }
@@ -131,12 +146,12 @@ class FlashcardViewModel(
         }
     }
 
-    private fun showAnswer() {
+    private fun toggleAnswer() {
         _uiState.update {
             if (it.currentCard == null || it.isSubmitting) {
                 it
             } else {
-                it.copy(isAnswerVisible = true)
+                it.copy(isAnswerVisible = !it.isAnswerVisible)
             }
         }
     }
@@ -176,6 +191,11 @@ class FlashcardViewModel(
         val card = state.currentCard ?: return
         if (state.isSubmitting || !state.isAnswerVisible) return
 
+        if (isDueReviewSession && rating == ReviewRating.Again) {
+            handleWrongReviewAnswer(card)
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
             val responseMs = elapsedResponseMs()
@@ -191,17 +211,13 @@ class FlashcardViewModel(
                         rating = result.data.rating,
                         isCorrect = result.data.isCorrect
                     )
-                    val nextIndex = _uiState.value.currentIndex + 1
-                    _uiState.update {
-                        it.copy(
-                            isSubmitting = false,
-                            currentIndex = nextIndex,
-                            isAnswerVisible = false,
-                            summary = updatedSummary
-                        )
+                    val isComplete = if (isDueReviewSession) {
+                        removeCurrentReviewCard(updatedSummary)
+                    } else {
+                        moveToNextLearningCard(updatedSummary)
                     }
                     cardStartedAtMs = System.currentTimeMillis()
-                    if (nextIndex >= _uiState.value.cards.size) {
+                    if (isComplete) {
                         _effects.emit(FlashcardEffect.NavigateReviewResults(updatedSummary))
                     }
                 }
@@ -217,6 +233,95 @@ class FlashcardViewModel(
                 }
             }
         }
+    }
+
+    private fun handleWrongReviewAnswer(card: ReviewCard) {
+        viewModelScope.launch {
+            val attempts = (wrongAttemptsByCardId[card.id] ?: 0) + 1
+            wrongAttemptsByCardId[card.id] = attempts
+
+            if (attempts < 2) {
+                _uiState.update { state ->
+                    val cards = state.cards.toMutableList()
+                    if (cards.isNotEmpty()) {
+                        val current = cards.removeAt(state.currentIndex)
+                        cards.add(current)
+                    }
+                    state.copy(
+                        cards = cards,
+                        currentIndex = state.currentIndex.coerceAtMost((cards.size - 1).coerceAtLeast(0)),
+                        isAnswerVisible = false,
+                        errorMessage = null
+                    )
+                }
+                cardStartedAtMs = System.currentTimeMillis()
+                _effects.emit(FlashcardEffect.ShowSnackbar("Incorrect. This word was moved to the end of the review."))
+                return@launch
+            }
+
+            _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
+            when (
+                val result = submitReviewUseCase(
+                    vocabularyItemId = card.id,
+                    rating = ReviewRating.Again,
+                    responseMs = elapsedResponseMs()
+                )
+            ) {
+                is AppResult.Success -> {
+                    val updatedSummary = _uiState.value.summary.record(
+                        rating = result.data.rating,
+                        isCorrect = false
+                    )
+                    val isComplete = removeCurrentReviewCard(updatedSummary)
+                    cardStartedAtMs = System.currentTimeMillis()
+                    if (isComplete) {
+                        _effects.emit(FlashcardEffect.NavigateReviewResults(updatedSummary))
+                    }
+                }
+                is AppResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            isAnswerVisible = true,
+                            errorMessage = result.error.message
+                        )
+                    }
+                    _effects.emit(FlashcardEffect.ShowSnackbar(result.error.message))
+                }
+            }
+        }
+    }
+
+    private fun moveToNextLearningCard(updatedSummary: ReviewSessionSummary): Boolean {
+        val nextIndex = _uiState.value.currentIndex + 1
+        _uiState.update {
+            it.copy(
+                isSubmitting = false,
+                currentIndex = nextIndex,
+                isAnswerVisible = false,
+                summary = updatedSummary
+            )
+        }
+        return nextIndex >= _uiState.value.cards.size
+    }
+
+    private fun removeCurrentReviewCard(updatedSummary: ReviewSessionSummary): Boolean {
+        var isComplete = false
+        _uiState.update { state ->
+            val cards = state.cards.toMutableList()
+            if (cards.isNotEmpty()) {
+                cards.removeAt(state.currentIndex)
+            }
+            isComplete = cards.isEmpty()
+            state.copy(
+                isSubmitting = false,
+                cards = cards,
+                currentIndex = state.currentIndex.coerceAtMost((cards.size - 1).coerceAtLeast(0)),
+                isAnswerVisible = false,
+                summary = updatedSummary
+            )
+        }
+        return isComplete
     }
 
     private fun navigateBack() {

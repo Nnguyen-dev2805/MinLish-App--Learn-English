@@ -95,16 +95,6 @@ fun LoginScreen(
                         textAlign = TextAlign.Center
                     )
                     
-                    if (uiState.apiError != null) {
-                        Text(
-                            text = uiState.apiError,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-
                     // Email Field
                     MinLishTextField(
                         value = uiState.email,

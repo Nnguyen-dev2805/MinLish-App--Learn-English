@@ -333,6 +333,7 @@ class ProfileViewModel(
         return if (hour in 0..23 && minute in 0..59) null else "Invalid reminder time."
     }
 
+    // mapping domain model sang UI state
     private fun User.toUiState(settings: NotificationSettings): ProfileUiState {
         return ProfileUiState(
             isLoading = false,

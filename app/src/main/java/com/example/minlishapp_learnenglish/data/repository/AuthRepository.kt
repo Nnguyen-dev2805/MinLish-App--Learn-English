@@ -143,6 +143,7 @@ class DefaultAuthRepository(
         }
     }
 
+
     override suspend fun getMe(): AppResult<User> {
         return safeApiCall(moshi) {
             authApi.getMe()

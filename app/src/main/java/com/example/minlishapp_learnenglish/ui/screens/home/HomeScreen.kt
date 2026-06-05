@@ -44,7 +44,7 @@ import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
-    onStartLearning: () -> Unit,
+    onStartReview: () -> Unit,
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
@@ -71,7 +71,7 @@ fun HomeScreen(
                 stats = stats,
                 dailyPlan = dailyPlan,
                 uiState = uiState,
-                onStartLearning = onStartLearning,
+                onStartReview = onStartReview,
                 onRefresh = onRefresh,
                 modifier = modifier
             )
@@ -84,7 +84,7 @@ private fun HomeContent(
     stats: ProgressStats,
     dailyPlan: DailyLearningPlan,
     uiState: HomeUiState,
-    onStartLearning: () -> Unit,
+    onStartReview: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -103,7 +103,7 @@ private fun HomeContent(
         )
         DailyPlanCard(
             dailyPlan = dailyPlan,
-            onStartLearning = onStartLearning
+            onStartReview = onStartReview
         )
         HomeStatsRow(stats = stats)
         MiniActivityChart(activities = uiState.activities)

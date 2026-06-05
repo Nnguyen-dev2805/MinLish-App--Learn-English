@@ -50,6 +50,9 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.home.HomeViewM
 import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardViewModel
+import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueEffect
+import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueEvent
+import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueViewModel
 import com.example.minlishapp_learnenglish.domain.model.ReviewSessionSummary
 import com.example.minlishapp_learnenglish.presentation.viewmodel.progress.ProgressEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.progress.ProgressEvent
@@ -68,6 +71,7 @@ import com.example.minlishapp_learnenglish.ui.screens.decks.DeckDetailScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckListScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.WordEditorScreen
 import com.example.minlishapp_learnenglish.ui.screens.learning.FlashcardLearningScreen
+import com.example.minlishapp_learnenglish.ui.screens.learning.ReviewDueScreen
 import com.example.minlishapp_learnenglish.ui.screens.learning.ReviewResultsScreen
 import com.example.minlishapp_learnenglish.ui.screens.home.HomeScreen
 import com.example.minlishapp_learnenglish.ui.screens.progress.ProgressAnalyticsScreen
@@ -328,7 +332,7 @@ fun AppNavGraph(
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        HomeEffect.NavigateLearn -> navController.navigate(Routes.Learn)
+                        HomeEffect.NavigateReviewDue -> navController.navigate(Routes.ReviewDue)
                         // is ở đây dùng để nếu effect là loại ShowSnackBar thì Kotlin tự hiểu effect có message, lấy effect.message, đưa message đó vào snackbar
                         is HomeEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                     }
@@ -338,7 +342,7 @@ fun AppNavGraph(
             Box {
                 HomeScreen(
                     uiState = uiState,
-                    onStartLearning = viewModel::startLearning,
+                    onStartReview = viewModel::startReview,
                     onRetry = viewModel::retry,
                     onRefresh = viewModel::refresh
                 )
@@ -540,7 +544,8 @@ fun AppNavGraph(
                 factory = viewModelFactory {
                     FlashcardViewModel(
                         getReviewCardsUseCase = appContainer.getReviewCardsUseCase,
-                        submitReviewUseCase = appContainer.submitReviewUseCase
+                        submitReviewUseCase = appContainer.submitReviewUseCase,
+                        mode = "new"
                     )
                 }
             )
@@ -577,6 +582,52 @@ fun AppNavGraph(
                     onRating = { rating ->
                         viewModel.onEvent(FlashcardEvent.SubmitRating(rating))
                     }
+                )
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+        }
+        composable(Routes.ReviewDue) {
+            val viewModel: ReviewDueViewModel = viewModel(
+                key = "review-due",
+                factory = viewModelFactory {
+                    ReviewDueViewModel(
+                        getReviewCardsUseCase = appContainer.getReviewCardsUseCase,
+                        submitReviewUseCase = appContainer.submitReviewUseCase
+                    )
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        ReviewDueEffect.NavigateBack -> {
+                            navController.navigateHomeFromLearning()
+                        }
+                        is ReviewDueEffect.NavigateReviewResults -> {
+                            reviewSessionSummary = effect.summary
+                            navController.navigate(Routes.ReviewResults) {
+                                popUpTo(Routes.ReviewDue) { inclusive = true }
+                            }
+                        }
+                        is ReviewDueEffect.ShowSnackbar -> {
+                            snackbarHostState.showSnackbar(effect.message)
+                        }
+                    }
+                }
+            }
+
+            Box {
+                ReviewDueScreen(
+                    uiState = uiState,
+                    onBack = { viewModel.onEvent(ReviewDueEvent.BackClicked) },
+                    onRetry = { viewModel.onEvent(ReviewDueEvent.Retry) },
+                    onChoiceSelected = { index -> viewModel.onEvent(ReviewDueEvent.ChoiceSelected(index)) },
+                    onSubmitAnswer = { viewModel.onEvent(ReviewDueEvent.SubmitAnswer) }
                 )
                 SnackbarHost(
                     hostState = snackbarHostState,

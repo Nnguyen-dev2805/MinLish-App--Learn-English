@@ -18,9 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Insights
-import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,7 +37,6 @@ import com.example.minlishapp_learnenglish.domain.model.DailyLearningPlan
 import com.example.minlishapp_learnenglish.domain.model.ProgressStats
 import com.example.minlishapp_learnenglish.presentation.viewmodel.home.HomeUiState
 import com.example.minlishapp_learnenglish.ui.components.DailyPlanCard
-import com.example.minlishapp_learnenglish.ui.components.InsightCard
 import com.example.minlishapp_learnenglish.ui.components.MiniActivityChart
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton
 import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
@@ -110,22 +107,6 @@ private fun HomeContent(
         )
         HomeStatsRow(stats = stats)
         MiniActivityChart(activities = uiState.activities)
-        Row(horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.md)) {
-            InsightCard(
-                title = "Try Spaced Repetition",
-                message = "Reviewing cards every 2 days boosts memory.",
-                icon = Icons.Outlined.Lightbulb,
-                modifier = Modifier.weight(1f)
-            )
-            InsightCard(
-                title = "Word Clubs",
-                message = "Community data is planned for a later phase.",
-                icon = Icons.Outlined.Groups,
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
         Spacer(modifier = Modifier.height(MinLishSpacing.lg))
     }
 }

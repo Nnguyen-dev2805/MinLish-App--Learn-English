@@ -16,6 +16,7 @@ import com.example.minlishapp_learnenglish.core.AppContainer
 import com.example.minlishapp_learnenglish.navigation.AppNavGraph
 import com.example.minlishapp_learnenglish.navigation.Routes
 import com.example.minlishapp_learnenglish.navigation.mainDestinations
+import com.example.minlishapp_learnenglish.navigation.requestHomeRefresh
 import com.example.minlishapp_learnenglish.ui.components.MinLishBottomBar
 
 @Composable
@@ -39,6 +40,9 @@ fun MinLishApp(appContainer: AppContainer) {
                         destinations = mainDestinations,
                         currentRoute = bottomBarRoute,
                         onDestinationClick = { destination ->
+                            if (destination.route == Routes.Home && bottomBarRoute == Routes.Learn) {
+                                navController.requestHomeRefresh()
+                            }
                             navController.navigate(
                                 route = destination.route,
                                 navOptions = navOptions {

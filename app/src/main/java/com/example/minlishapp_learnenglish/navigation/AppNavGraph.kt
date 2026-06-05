@@ -305,7 +305,7 @@ fun AppNavGraph(
             )
         }
 
-        composable(Routes.Home) {
+        composable(Routes.Home) { backStackEntry ->
             val viewModel: HomeViewModel = viewModel(
                 factory = viewModelFactory {
                     HomeViewModel(appContainer.loadHomeUseCase)
@@ -314,6 +314,16 @@ fun AppNavGraph(
             val uiState by viewModel.uiState.collectAsState()
             // dùng để hiển thị lỗi ở dưới màn hình
             val snackbarHostState = remember { SnackbarHostState() }
+            val refreshHome by backStackEntry.savedStateHandle
+                .getStateFlow("refreshHome", false)
+                .collectAsState()
+
+            LaunchedEffect(refreshHome) {
+                if (refreshHome) {
+                    viewModel.refresh()
+                    backStackEntry.savedStateHandle["refreshHome"] = false
+                }
+            }
 
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
@@ -540,7 +550,9 @@ fun AppNavGraph(
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        FlashcardEffect.NavigateBack -> navController.popBackStack()
+                        FlashcardEffect.NavigateBack -> {
+                            navController.navigateHomeFromLearning()
+                        }
                         is FlashcardEffect.NavigateReviewResults -> {
                             reviewSessionSummary = effect.summary
                             navController.navigate(Routes.ReviewResults) {
@@ -598,7 +610,9 @@ fun AppNavGraph(
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        FlashcardEffect.NavigateBack -> navController.popBackStack()
+                        FlashcardEffect.NavigateBack -> {
+                            navController.navigateHomeFromLearning()
+                        }
                         is FlashcardEffect.NavigateReviewResults -> {
                             reviewSessionSummary = effect.summary
                             navController.navigate(Routes.ReviewResults) {
@@ -642,10 +656,7 @@ fun AppNavGraph(
                 },
                 onBackHome = {
                     reviewSessionSummary = null
-                    navController.navigate(Routes.Home) {
-                        popUpTo(Routes.Home) { inclusive = false }
-                        launchSingleTop = true
-                    }
+                    navController.navigateHomeFromLearning()
                 }
             )
         }
@@ -742,6 +753,21 @@ fun AppNavGraph(
                 )
             }
         }
+    }
+}
+
+private fun NavHostController.navigateHomeFromLearning() {
+    requestHomeRefresh()
+    navigate(Routes.Home) {
+        popUpTo(Routes.Home) { inclusive = false }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+fun NavHostController.requestHomeRefresh() {
+    runCatching {
+        getBackStackEntry(Routes.Home).savedStateHandle["refreshHome"] = true
     }
 }
 

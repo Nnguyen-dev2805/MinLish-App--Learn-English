@@ -15,16 +15,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,12 +37,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import com.example.minlishapp_learnenglish.core.audio.SimpleAudioPlayer
+import com.example.minlishapp_learnenglish.core.network.BackendUrlResolver
 import com.example.minlishapp_learnenglish.domain.model.ReviewCard
 import com.example.minlishapp_learnenglish.domain.model.ReviewRating
 import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardUiState
@@ -51,6 +54,7 @@ import com.example.minlishapp_learnenglish.ui.components.ErrorStateView
 import com.example.minlishapp_learnenglish.ui.components.LoadingStateView
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton
 import com.example.minlishapp_learnenglish.ui.components.MinLishOutlinedButton
+import com.example.minlishapp_learnenglish.ui.components.RemoteMediaImage
 import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
 
 @Composable
@@ -62,6 +66,7 @@ fun FlashcardLearningScreen(
     onPreviousCard: () -> Unit,
     onNextCard: () -> Unit,
     onRating: (ReviewRating) -> Unit,
+    onAudioError: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     when {
@@ -112,6 +117,7 @@ fun FlashcardLearningScreen(
                 onPreviousCard = onPreviousCard,
                 onNextCard = onNextCard,
                 onRating = onRating,
+                onAudioError = onAudioError,
                 modifier = modifier
             )
         }
@@ -126,9 +132,15 @@ private fun FlashcardContent(
     onPreviousCard: () -> Unit,
     onNextCard: () -> Unit,
     onRating: (ReviewRating) -> Unit,
+    onAudioError: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val card = uiState.currentCard ?: return
+    val audioPlayer = remember { SimpleAudioPlayer() }
+
+    DisposableEffect(Unit) {
+        onDispose { audioPlayer.release() }
+    }
 
     Column(
         modifier = modifier
@@ -151,6 +163,9 @@ private fun FlashcardContent(
             FlashcardView(
                 card = card,
                 isAnswerVisible = uiState.isAnswerVisible,
+                onToggleAnswer = onShowAnswer,
+                audioPlayer = audioPlayer,
+                onAudioError = onAudioError,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 500.dp)
@@ -166,7 +181,6 @@ private fun FlashcardContent(
         FlashcardActions(
             isAnswerVisible = uiState.isAnswerVisible,
             isSubmitting = uiState.isSubmitting,
-            onShowAnswer = onShowAnswer,
             onRating = onRating
         )
         uiState.errorMessage?.let { message ->
@@ -302,10 +316,13 @@ private fun SessionProgress(
 private fun FlashcardView(
     card: ReviewCard,
     isAnswerVisible: Boolean,
+    onToggleAnswer: () -> Unit,
+    audioPlayer: SimpleAudioPlayer,
+    onAudioError: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.clickable(enabled = true) { onToggleAnswer() },
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -317,20 +334,38 @@ private fun FlashcardView(
             label = "flashcard-face"
         ) { answerVisible ->
             if (answerVisible) {
-                FlashcardBack(card = card)
+                FlashcardBack(
+                    card = card,
+                    audioPlayer = audioPlayer,
+                    onAudioError = onAudioError
+                )
             } else {
-                FlashcardFront(card = card)
+                FlashcardFront(
+                    card = card,
+                    audioPlayer = audioPlayer,
+                    onAudioError = onAudioError
+                )
             }
         }
     }
 }
 
 @Composable
-private fun FlashcardFront(card: ReviewCard) {
+private fun FlashcardFront(
+    card: ReviewCard,
+    audioPlayer: SimpleAudioPlayer,
+    onAudioError: (String) -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize()) {
-        if (card.hasAudio) {
+        if (card.wordAudioUrl != null) {
             MediaIconButton(
-                icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                onClick = {
+                    playWordAudio(
+                        card = card,
+                        audioPlayer = audioPlayer,
+                        onAudioError = onAudioError
+                    )
+                },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(MinLishSpacing.lg)
@@ -380,123 +415,131 @@ private fun FlashcardFront(card: ReviewCard) {
                 shape = RoundedCornerShape(999.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
             ) {}
+            Spacer(modifier = Modifier.height(MinLishSpacing.md))
+            Text(
+                text = "Tap card to see meaning",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
 
 @Composable
-private fun FlashcardBack(card: ReviewCard) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(MinLishSpacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Definition",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(modifier = Modifier.height(MinLishSpacing.md))
-        Text(
-            text = card.meaning,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-        card.description?.takeIf { it.isNotBlank() }?.let { description ->
-            Spacer(modifier = Modifier.height(MinLishSpacing.md))
+private fun FlashcardBack(
+    card: ReviewCard,
+    audioPlayer: SimpleAudioPlayer,
+    onAudioError: (String) -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (card.wordAudioUrl != null) {
+            MediaIconButton(
+                onClick = {
+                    playWordAudio(
+                        card = card,
+                        audioPlayer = audioPlayer,
+                        onAudioError = onAudioError
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(MinLishSpacing.lg)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(MinLishSpacing.lg),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(MinLishSpacing.sm)
+        ) {
             Text(
-                text = description,
+                text = "Definition",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = card.meaning,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            card.description?.takeIf { it.isNotBlank() }?.let { description ->
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            card.example?.takeIf { it.isNotBlank() }?.let { example ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    Column(
+                        modifier = Modifier.padding(MinLishSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(MinLishSpacing.xs)
+                    ) {
+                        Text(
+                            text = "EXAMPLE",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Text(
+                            text = example,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontStyle = FontStyle.Italic,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+            card.imageUrl?.takeIf { it.isNotBlank() }?.let { imageUrl ->
+                RemoteMediaImage(
+                    imageUrl = imageUrl,
+                    contentDescription = card.word,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                )
+            }
+            Text(
+                text = "Tap card to see word",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                maxLines = 5,
-                overflow = TextOverflow.Ellipsis
             )
-        }
-        card.example?.takeIf { it.isNotBlank() }?.let { example ->
-            Spacer(modifier = Modifier.height(MinLishSpacing.lg))
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer
-            ) {
-                Column(
-                    modifier = Modifier.padding(MinLishSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(MinLishSpacing.xs)
-                ) {
-                    Text(
-                        text = "EXAMPLE",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                    Text(
-                        text = example,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontStyle = FontStyle.Italic,
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-        if (card.imageUrl != null || card.hasAudio) {
-            Spacer(modifier = Modifier.height(MinLishSpacing.md))
-            MediaIndicators(card = card)
-        }
-    }
-}
-
-@Composable
-private fun MediaIndicators(card: ReviewCard) {
-    Row(horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.xs)) {
-        if (card.imageUrl != null) {
-            MediaPill(icon = Icons.Outlined.Image, text = "Image")
-        }
-        if (card.hasAudio) {
-            MediaPill(icon = Icons.AutoMirrored.Outlined.VolumeUp, text = "Audio")
         }
     }
 }
 
 @Composable
 private fun MediaIconButton(
-    icon: ImageVector,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.size(48.dp),
+        modifier = modifier
+            .size(48.dp)
+            .clickable(onClick = onClick),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(imageVector = icon, contentDescription = null)
-        }
-    }
-}
-
-@Composable
-private fun MediaPill(
-    icon: ImageVector,
-    text: String
-) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.xxs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp))
-            Text(text = text, style = MaterialTheme.typography.labelMedium)
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
+                contentDescription = "Play audio"
+            )
         }
     }
 }
@@ -505,7 +548,6 @@ private fun MediaPill(
 private fun FlashcardActions(
     isAnswerVisible: Boolean,
     isSubmitting: Boolean,
-    onShowAnswer: () -> Unit,
     onRating: (ReviewRating) -> Unit
 ) {
     Column(
@@ -513,14 +555,7 @@ private fun FlashcardActions(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(MinLishSpacing.sm)
     ) {
-        if (!isAnswerVisible) {
-            MinLishButton(
-                text = "SHOW ANSWER",
-                icon = Icons.Outlined.Visibility,
-                onClick = onShowAnswer,
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
+        if (isAnswerVisible) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.xs)
@@ -574,6 +609,21 @@ private fun FlashcardActions(
                 )
             }
         }
+    }
+}
+
+private fun playWordAudio(
+    card: ReviewCard,
+    audioPlayer: SimpleAudioPlayer,
+    onAudioError: (String) -> Unit
+) {
+    val resolvedUrl = BackendUrlResolver.resolve(card.wordAudioUrl)
+    if (resolvedUrl == null) {
+        onAudioError("Unable to play audio.")
+        return
+    }
+    audioPlayer.play(resolvedUrl) {
+        onAudioError("Unable to play audio.")
     }
 }
 

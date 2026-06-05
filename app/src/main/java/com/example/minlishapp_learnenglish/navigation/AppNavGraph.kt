@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,6 +77,7 @@ import com.example.minlishapp_learnenglish.ui.screens.learning.ReviewResultsScre
 import com.example.minlishapp_learnenglish.ui.screens.home.HomeScreen
 import com.example.minlishapp_learnenglish.ui.screens.progress.ProgressAnalyticsScreen
 import com.example.minlishapp_learnenglish.ui.screens.profile.ProfileSettingsScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavGraph(
@@ -551,6 +553,7 @@ fun AppNavGraph(
             )
             val uiState by viewModel.uiState.collectAsState()
             val snackbarHostState = remember { SnackbarHostState() }
+            val snackbarScope = rememberCoroutineScope()
 
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
@@ -581,6 +584,9 @@ fun AppNavGraph(
                     onNextCard = { viewModel.onEvent(FlashcardEvent.NextCard) },
                     onRating = { rating ->
                         viewModel.onEvent(FlashcardEvent.SubmitRating(rating))
+                    },
+                    onAudioError = { message ->
+                        snackbarScope.launch { snackbarHostState.showSnackbar(message) }
                     }
                 )
                 SnackbarHost(
@@ -657,6 +663,7 @@ fun AppNavGraph(
             )
             val uiState by viewModel.uiState.collectAsState()
             val snackbarHostState = remember { SnackbarHostState() }
+            val snackbarScope = rememberCoroutineScope()
 
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
@@ -687,6 +694,9 @@ fun AppNavGraph(
                     onNextCard = { viewModel.onEvent(FlashcardEvent.NextCard) },
                     onRating = { rating ->
                         viewModel.onEvent(FlashcardEvent.SubmitRating(rating))
+                    },
+                    onAudioError = { message ->
+                        snackbarScope.launch { snackbarHostState.showSnackbar(message) }
                     }
                 )
                 SnackbarHost(

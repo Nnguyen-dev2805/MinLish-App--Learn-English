@@ -98,7 +98,7 @@ class FlashcardViewModel(
     fun onEvent(event: FlashcardEvent) {
         when (event) {
             FlashcardEvent.Retry -> loadCards()
-            FlashcardEvent.ShowAnswer -> showAnswer()
+            FlashcardEvent.ShowAnswer -> toggleAnswer()
             FlashcardEvent.PreviousCard -> goToPreviousCard()
             FlashcardEvent.NextCard -> goToNextCard()
             FlashcardEvent.BackClicked -> navigateBack()
@@ -146,12 +146,12 @@ class FlashcardViewModel(
         }
     }
 
-    private fun showAnswer() {
+    private fun toggleAnswer() {
         _uiState.update {
             if (it.currentCard == null || it.isSubmitting) {
                 it
             } else {
-                it.copy(isAnswerVisible = true)
+                it.copy(isAnswerVisible = !it.isAnswerVisible)
             }
         }
     }

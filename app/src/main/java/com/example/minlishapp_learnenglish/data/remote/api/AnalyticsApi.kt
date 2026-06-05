@@ -5,6 +5,9 @@ import com.example.minlishapp_learnenglish.data.remote.dto.DashboardResponseDto
 import com.example.minlishapp_learnenglish.data.remote.dto.RetentionResponseDto
 import retrofit2.http.GET
 
+
+// Header -> xác nhận người gửi là ai - token
+// BOdy -> POST
 interface AnalyticsApi {
     @GET("analytics/dashboard")
     suspend fun getDashboard(): DashboardResponseDto

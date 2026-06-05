@@ -60,7 +60,7 @@ def login_with_google(
     if not settings.google_client_id:
         raise ApiError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Google Client ID chưa được cấu hình.",
+            detail="Google Client ID is not configured.",
             code="GOOGLE_LOGIN_NOT_CONFIGURED",
         )
     return auth_service.login_with_google(request.id_token, settings.google_client_id)

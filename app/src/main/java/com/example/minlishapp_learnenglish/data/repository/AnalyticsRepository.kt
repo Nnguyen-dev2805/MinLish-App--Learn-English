@@ -19,10 +19,11 @@ class DefaultAnalyticsRepository(
     private val analyticsApi: AnalyticsApi,
     private val moshi: Moshi
 ) : AnalyticsRepository {
+    // DTO với Domain Model dùng hiển thị lên UI
     override suspend fun getDashboard(): AppResult<ProgressStats> {
         return safeApiCall(moshi) {
-            analyticsApi.getDashboard()
-        }.map { it.toDomain() }
+            analyticsApi.getDashboard() // DTO từ backend
+        }.map { it.toDomain() } // dto từ backend.toDomain
     }
 
     override suspend fun getActivity(): AppResult<List<DailyActivity>> {

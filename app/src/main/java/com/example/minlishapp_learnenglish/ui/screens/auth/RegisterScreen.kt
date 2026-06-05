@@ -94,16 +94,6 @@ fun RegisterScreen(
                 textAlign = TextAlign.Center
             )
 
-            if (uiState.apiError != null) {
-                Text(
-                    text = uiState.apiError,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            }
-
             MinLishCard(modifier = Modifier.fillMaxWidth(), tonal = false) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(MinLishSpacing.md)

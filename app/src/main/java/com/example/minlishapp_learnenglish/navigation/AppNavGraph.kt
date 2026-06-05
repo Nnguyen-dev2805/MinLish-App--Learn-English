@@ -312,12 +312,14 @@ fun AppNavGraph(
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
+            // dùng để hiển thị lỗi ở dưới màn hình
             val snackbarHostState = remember { SnackbarHostState() }
 
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
                         HomeEffect.NavigateLearn -> navController.navigate(Routes.Learn)
+                        // is ở đây dùng để nếu effect là loại ShowSnackBar thì Kotlin tự hiểu effect có message, lấy effect.message, đưa message đó vào snackbar
                         is HomeEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                     }
                 }
@@ -816,8 +818,10 @@ private fun NavHostController.navigateReplacingCurrentAuth(
     currentRoute: String,
     targetRoute: String
 ) {
+
     navigate(targetRoute) {
-        popUpTo(currentRoute) { inclusive = true }
-        launchSingleTop = true
+        popUpTo(currentRoute) { inclusive = true } //popUpto xoá các màn hình trong back stack cho tới route được chỉ định - inclusive trức xoá luôn currentRoute
+        // vì vậy khi người dùng bấm Back từ Home, app sẽ không quay trở lại Login
+        launchSingleTop = true // dòng này tránh tạo nhiều bản sao của cùng 1 màn hình ở trên cùng back stack
     }
 }

@@ -99,14 +99,6 @@ fun ForgotPasswordScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (uiState.apiError != null) {
-                        Text(
-                            text = uiState.apiError,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
                     MinLishTextField(
                         value = uiState.email,
                         onValueChange = onEmailChange,

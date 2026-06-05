@@ -46,7 +46,7 @@ class LearningService:
             if requested_mode != "deck_all":
                 raise ApiError(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Chế độ học deck không hợp lệ.",
+                    detail="Invalid deck learning mode.",
                     code="INVALID_LEARNING_MODE",
                 )
             return self._get_all_cards_in_deck(user=user, deck_id=deck_id)

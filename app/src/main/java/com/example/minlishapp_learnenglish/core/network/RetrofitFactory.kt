@@ -13,7 +13,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 object RetrofitFactory {
     fun createMoshi(): Moshi {
         return Moshi.Builder()
-            .add(KotlinJsonAdapterFactory())
+            .add(KotlinJsonAdapterFactory()) // giúp moshi hiểu tốt hơn các class Kotlin như data class, nullable, default value
             .build()
     }
 
@@ -22,7 +22,7 @@ object RetrofitFactory {
         baseUrl: String = NetworkConfig.API_BASE_URL
     ): Retrofit {
         return createRetrofit(
-            okHttpClient = createBaseClient(),
+            okHttpClient = createBaseClient(),// tưcs là client cơ bản chỉ có timeout và logging, chưa có gắn token
             moshi = moshi,
             baseUrl = baseUrl
         )

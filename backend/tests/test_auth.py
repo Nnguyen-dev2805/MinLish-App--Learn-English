@@ -188,7 +188,7 @@ def test_login_rejects_invalid_credentials(client: TestClient) -> None:
 
     assert response.status_code == 401
     assert response.json() == {
-        "detail": "Email hoặc mật khẩu không đúng.",
+        "detail": "Email or password is incorrect.",
         "code": "INVALID_CREDENTIALS",
     }
 
@@ -208,7 +208,7 @@ def test_google_login_reports_not_configured(client: TestClient, monkeypatch) ->
         response = client.post("/api/v1/auth/google", json={"id_token": "token"})
         assert response.status_code == 400
         assert response.json() == {
-            "detail": "Google Client ID chưa được cấu hình.",
+            "detail": "Google Client ID is not configured.",
             "code": "GOOGLE_LOGIN_NOT_CONFIGURED",
         }
     finally:

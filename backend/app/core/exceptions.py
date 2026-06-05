@@ -27,7 +27,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=422,
             content={
-                "detail": "Dữ liệu nhập chưa hợp lệ.",
+                "detail": "Input data is invalid.",
                 "code": "VALIDATION_ERROR",
             },
         )
@@ -37,7 +37,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         _request: Request,
         exc: StarletteHTTPException,
     ) -> JSONResponse:
-        detail = exc.detail if isinstance(exc.detail, str) else "Đã có lỗi xảy ra."
+        detail = exc.detail if isinstance(exc.detail, str) else "Something went wrong."
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": detail, "code": f"HTTP_{exc.status_code}"},

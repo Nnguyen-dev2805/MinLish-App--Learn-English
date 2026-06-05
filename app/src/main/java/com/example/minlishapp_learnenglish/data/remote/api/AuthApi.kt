@@ -50,6 +50,7 @@ interface AuthApi {
     @GET("users/me")
     suspend fun getMe(): UserDto
 
+    // PATCH dùng để cập nhật dữ liệu 1 phần không cập nhật hết
     @PATCH("users/me")
     suspend fun updateMe(@Body request: UpdateUserRequestDto): UserDto
 }

@@ -2,8 +2,8 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.minlishapp_learnenglish.domain.usecase.auth.CheckSessionUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.SessionDestination
+import com.example.minlishapp_learnenglish.core.result.AppResult
+import com.example.minlishapp_learnenglish.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -17,7 +17,7 @@ data class SplashUiState(
 )
 
 class SplashViewModel(
-    private val checkSessionUseCase: CheckSessionUseCase
+    private val authRepository: AuthRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SplashUiState())
     val uiState: StateFlow<SplashUiState> = _uiState.asStateFlow()
@@ -28,12 +28,13 @@ class SplashViewModel(
     fun checkSession() {
         viewModelScope.launch {
             _uiState.value = SplashUiState(isChecking = true)
-            val destination = runCatching { checkSessionUseCase() }.getOrDefault(SessionDestination.Login)
+            val hasLoggedInUser = authRepository.getMe() is AppResult.Success
             _uiState.value = SplashUiState(isChecking = false)
             _effects.emit(
-                when (destination) {
-                    SessionDestination.Home -> AuthEffect.NavigateHome
-                    SessionDestination.Login -> AuthEffect.NavigateLogin
+                if (hasLoggedInUser) {
+                    AuthEffect.NavigateHome
+                } else {
+                    AuthEffect.NavigateLogin
                 }
             )
         }

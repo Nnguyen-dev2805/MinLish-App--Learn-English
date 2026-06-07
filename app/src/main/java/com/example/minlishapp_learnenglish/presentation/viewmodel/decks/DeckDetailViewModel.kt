@@ -3,12 +3,9 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.decks
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
+import com.example.minlishapp_learnenglish.data.repository.DeckRepository
 import com.example.minlishapp_learnenglish.domain.model.VocabularyDeck
 import com.example.minlishapp_learnenglish.domain.model.VocabularyWord
-import com.example.minlishapp_learnenglish.domain.usecase.decks.ExportDeckItemsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckDetailUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckItemsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -46,10 +43,7 @@ sealed interface DeckDetailEffect {
 
 class DeckDetailViewModel(
     private val deckId: Long,
-    private val getDeckDetailUseCase: GetDeckDetailUseCase,
-    private val getDeckItemsUseCase: GetDeckItemsUseCase,
-    private val importDeckItemsUseCase: ImportDeckItemsUseCase,
-    private val exportDeckItemsUseCase: ExportDeckItemsUseCase
+    private val deckRepository: DeckRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DeckDetailUiState())
     val uiState: StateFlow<DeckDetailUiState> = _uiState.asStateFlow()
@@ -74,7 +68,7 @@ class DeckDetailViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            when (val deckResult = getDeckDetailUseCase(deckId)) {
+            when (val deckResult = deckRepository.getDeck(deckId)) {
                 is AppResult.Failure -> {
                     _uiState.update {
                         it.copy(isLoading = false, errorMessage = deckResult.error.message)
@@ -82,7 +76,7 @@ class DeckDetailViewModel(
                 }
 
                 is AppResult.Success -> {
-                    when (val wordsResult = getDeckItemsUseCase(deckId)) {
+                    when (val wordsResult = deckRepository.getDeckItems(deckId)) {
                         is AppResult.Failure -> {
                             _uiState.update {
                                 it.copy(
@@ -142,7 +136,7 @@ class DeckDetailViewModel(
         
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            when (val result = importDeckItemsUseCase(deckId, fileName, fileBytes)) {
+            when (val result = deckRepository.importDeckItems(deckId, fileName, fileBytes)) {
                 is AppResult.Success -> {
                     emitEffect(DeckDetailEffect.ShowSnackbar("Imported ${result.data} words successfully."))
                     loadDeck() // Reload to show new words
@@ -164,7 +158,7 @@ class DeckDetailViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isExporting = true, errorMessage = null) }
-            when (val result = exportDeckItemsUseCase(deck.id)) {
+            when (val result = deckRepository.exportDeckItems(deck.id)) {
                 is AppResult.Success -> {
                     _uiState.update {
                         it.copy(

@@ -3,11 +3,8 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.decks
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
+import com.example.minlishapp_learnenglish.data.repository.DeckRepository
 import com.example.minlishapp_learnenglish.domain.model.VocabularyWord
-import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateWordUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.DeleteWordUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckItemsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.UpdateWordUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -62,10 +59,7 @@ sealed interface WordEditorEffect {
 class WordEditorViewModel(
     private val deckId: Long,
     private val itemId: Long?,
-    private val getDeckItemsUseCase: GetDeckItemsUseCase,
-    private val createWordUseCase: CreateWordUseCase,
-    private val updateWordUseCase: UpdateWordUseCase,
-    private val deleteWordUseCase: DeleteWordUseCase
+    private val deckRepository: DeckRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         WordEditorUiState(deckId = deckId, itemId = itemId)
@@ -118,7 +112,7 @@ class WordEditorViewModel(
         val editingItemId = itemId ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingInitial = true, apiError = null) }
-            when (val result = getDeckItemsUseCase(deckId)) {
+            when (val result = deckRepository.getDeckItems(deckId)) {
                 is AppResult.Success -> {
                     val word = result.data.firstOrNull { it.id == editingItemId }
                     if (word == null) {
@@ -155,7 +149,7 @@ class WordEditorViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, apiError = null) }
             val result = if (state.itemId == null) {
-                createWordUseCase(
+                deckRepository.createWord(
                     deckId = state.deckId,
                     word = state.word,
                     pronunciation = state.pronunciation,
@@ -167,7 +161,7 @@ class WordEditorViewModel(
                     note = state.note
                 )
             } else {
-                updateWordUseCase(
+                deckRepository.updateWord(
                     itemId = state.itemId,
                     word = state.word,
                     pronunciation = state.pronunciation,
@@ -204,7 +198,7 @@ class WordEditorViewModel(
         val editingItemId = itemId ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isDeleting = true, apiError = null) }
-            when (val result = deleteWordUseCase(editingItemId)) {
+            when (val result = deckRepository.deleteWord(editingItemId)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isDeleting = false) }
                     _effects.emit(WordEditorEffect.NavigateBackWithRefresh("Word deleted."))

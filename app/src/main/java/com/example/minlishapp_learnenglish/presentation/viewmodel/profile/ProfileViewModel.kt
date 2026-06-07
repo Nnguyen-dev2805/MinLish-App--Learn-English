@@ -4,13 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.notification.ReminderScheduler
 import com.example.minlishapp_learnenglish.core.result.AppResult
+import com.example.minlishapp_learnenglish.data.repository.AuthRepository
+import com.example.minlishapp_learnenglish.data.repository.NotificationRepository
 import com.example.minlishapp_learnenglish.domain.model.NotificationSettings
 import com.example.minlishapp_learnenglish.domain.model.User
-import com.example.minlishapp_learnenglish.domain.usecase.notification.GetNotificationSettingsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.notification.UpdateNotificationSettingsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.profile.GetProfileUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.profile.LogoutUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.profile.UpdateProfileUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -72,11 +69,8 @@ sealed interface ProfileEffect {
 }
 
 class ProfileViewModel(
-    private val getProfileUseCase: GetProfileUseCase,
-    private val updateProfileUseCase: UpdateProfileUseCase,
-    private val getNotificationSettingsUseCase: GetNotificationSettingsUseCase,
-    private val updateNotificationSettingsUseCase: UpdateNotificationSettingsUseCase,
-    private val logoutUseCase: LogoutUseCase,
+    private val authRepository: AuthRepository,
+    private val notificationRepository: NotificationRepository,
     private val reminderScheduler: ReminderScheduler
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -120,8 +114,8 @@ class ProfileViewModel(
                 )
             }
 
-            val profileResult = getProfileUseCase()
-            val settingsResult = getNotificationSettingsUseCase()
+            val profileResult = authRepository.getMe()
+            val settingsResult = notificationRepository.getPreferences()
             when {
                 profileResult is AppResult.Success && settingsResult is AppResult.Success -> {
                     val user = profileResult.data
@@ -140,8 +134,8 @@ class ProfileViewModel(
             _uiState.update {
                 it.copy(isRefreshing = true, errorMessage = null)
             }
-            val profileResult = getProfileUseCase()
-            val settingsResult = getNotificationSettingsUseCase()
+            val profileResult = authRepository.getMe()
+            val settingsResult = notificationRepository.getPreferences()
             when {
                 profileResult is AppResult.Success && settingsResult is AppResult.Success -> {
                     val settings = settingsResult.data
@@ -179,7 +173,7 @@ class ProfileViewModel(
                 it.copy(isSavingProfile = true, errorMessage = null)
             }
             when (
-                val result = updateProfileUseCase(
+                val result = authRepository.updateMe(
                     name = name,
                     goal = currentState.goal.takeUnless { it.isBlank() },
                     level = currentState.level.takeUnless { it.isBlank() },
@@ -225,10 +219,10 @@ class ProfileViewModel(
                 it.copy(isSavingNotifications = true, errorMessage = null)
             }
             when (
-                val result = updateNotificationSettingsUseCase(
+                val result = notificationRepository.updatePreferences(
                     dailyTime = currentState.dailyTime,
                     timezone = currentState.timezone.ifBlank { PROFILE_DEFAULT_TIMEZONE },
-                    emailEnabled = currentState.emailEnabled,
+                    emailEnabled = false,
                     pushEnabled = currentState.pushEnabled
                 )
             ) {
@@ -259,7 +253,7 @@ class ProfileViewModel(
     private fun logout() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoggingOut = true) }
-            val result = logoutUseCase()
+            val result = authRepository.logout()
             reminderScheduler.cancel()
             if (result is AppResult.Failure) {
                 _effects.emit(ProfileEffect.ShowSnackbar(result.error.message))

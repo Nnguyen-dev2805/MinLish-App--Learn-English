@@ -3,8 +3,7 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
-import com.example.minlishapp_learnenglish.domain.usecase.auth.GoogleLoginUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.LoginUseCase
+import com.example.minlishapp_learnenglish.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -23,8 +22,7 @@ data class LoginUiState(
     val apiError: String? = null
 )
 class LoginViewModel(
-    private val loginUseCase: LoginUseCase,
-    private val googleLoginUseCase: GoogleLoginUseCase
+    private val authRepository: AuthRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -80,7 +78,7 @@ class LoginViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, apiError = null) }
-            when (val result = loginUseCase(email, password)) {
+            when (val result = authRepository.login(email, password)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
                     _effects.emit(AuthEffect.NavigateHome)
@@ -96,22 +94,6 @@ class LoginViewModel(
     fun showError(message: String) {
         viewModelScope.launch {
             _effects.emit(AuthEffect.ShowSnackbar(message))
-        }
-    }
-
-    fun googleLogin(idToken: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, apiError = null) }
-            when (val result = googleLoginUseCase(idToken)) {
-                is AppResult.Success -> {
-                    _uiState.update { it.copy(isLoading = false) }
-                    _effects.emit(AuthEffect.NavigateHome)
-                }
-                is AppResult.Failure -> {
-                    _uiState.update { it.copy(isLoading = false, apiError = result.error.message) }
-                    _effects.emit(AuthEffect.ShowSnackbar(result.error.message))
-                }
-            }
         }
     }
 }

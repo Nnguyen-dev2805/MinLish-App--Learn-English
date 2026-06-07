@@ -22,8 +22,6 @@ import androidx.navigation.navArgument
 import com.example.minlishapp_learnenglish.core.AppContainer
 import com.example.minlishapp_learnenglish.presentation.viewmodel.viewModelFactory
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.AuthEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.ForgotPasswordEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.ForgotPasswordViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SplashViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterViewModel
@@ -32,8 +30,6 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterE
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.VerifyEmailEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.VerifyEmailViewModel
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEffect
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckViewModel
@@ -62,11 +58,9 @@ import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.Profil
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileEvent
 import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileViewModel
 import com.example.minlishapp_learnenglish.ui.screens.auth.LoginScreen
-import com.example.minlishapp_learnenglish.ui.screens.auth.ForgotPasswordScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SetupScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SplashScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.RegisterScreen
-import com.example.minlishapp_learnenglish.ui.screens.auth.VerifyEmailScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.CreateDeckScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckDetailScreen
 import com.example.minlishapp_learnenglish.ui.screens.decks.DeckListScreen
@@ -95,7 +89,7 @@ fun AppNavGraph(
         composable(Routes.Splash) {
             val viewModel: SplashViewModel = viewModel(
                 factory = viewModelFactory {
-                    SplashViewModel(appContainer.checkSessionUseCase)
+                    SplashViewModel(appContainer.authRepository)
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
@@ -115,8 +109,7 @@ fun AppNavGraph(
             val viewModel: LoginViewModel = viewModel(
                 factory = viewModelFactory {
                     LoginViewModel(
-                        loginUseCase = appContainer.loginUseCase,
-                        googleLoginUseCase = appContainer.googleLoginUseCase
+                        authRepository = appContainer.authRepository
                     )
                 }
             )
@@ -138,16 +131,13 @@ fun AppNavGraph(
                 onEmailChange = viewModel::onEmailChange,
                 onPasswordChange = viewModel::onPasswordChange,
                 onLogin = viewModel::loginWithEmailPassword,
-                onSignUp = viewModel::navigateRegister,
-                onForgotPassword = { navController.navigate(Routes.ForgotPassword) },
-                onGoogleLogin = viewModel::googleLogin,
-                onError = viewModel::showError
+                onSignUp = viewModel::navigateRegister
             )
         }
         composable(Routes.Register) {
             val viewModel: RegisterViewModel = viewModel(
                 factory = viewModelFactory {
-                    RegisterViewModel(appContainer.registerUseCase)
+                    RegisterViewModel(appContainer.authRepository)
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
@@ -156,9 +146,9 @@ fun AppNavGraph(
             LaunchedEffect(viewModel) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
-                        is RegisterEffect.NavigateVerifyEmail -> {
-                            navController.navigate(Routes.verifyEmail(effect.email, effect.userName)) {
-                                popUpTo(Routes.Register) { inclusive = true }
+                        RegisterEffect.NavigateHome -> {
+                            navController.navigate(Routes.Home) {
+                                popUpTo(Routes.Login) { inclusive = true }
                                 launchSingleTop = true
                             }
                         }
@@ -180,95 +170,6 @@ fun AppNavGraph(
             )
         }
         composable(
-            route = Routes.VerifyEmail,
-            arguments = listOf(
-                navArgument("email") { type = NavType.StringType },
-                navArgument("userName") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val email = java.net.URLDecoder.decode(
-                backStackEntry.arguments?.getString("email") ?: "",
-                "UTF-8"
-            )
-            val userName = java.net.URLDecoder.decode(
-                backStackEntry.arguments?.getString("userName") ?: "",
-                "UTF-8"
-            )
-            val viewModel: VerifyEmailViewModel = viewModel(
-                factory = viewModelFactory {
-                    VerifyEmailViewModel(
-                        email = email,
-                        verifyEmailUseCase = appContainer.verifyEmailUseCase,
-                        resendVerificationOtpUseCase = appContainer.resendVerificationOtpUseCase
-                    )
-                }
-            )
-            val uiState by viewModel.uiState.collectAsState()
-            val snackbarHostState = remember { SnackbarHostState() }
-
-            LaunchedEffect(viewModel) {
-                viewModel.effects.collect { effect ->
-                    when (effect) {
-                        VerifyEmailEffect.NavigateSetup -> {
-                            navController.navigate(Routes.Setup + "/${java.net.URLEncoder.encode(userName, "UTF-8")}") {
-                                popUpTo(Routes.Login) { inclusive = false }
-                                launchSingleTop = true
-                            }
-                        }
-                        VerifyEmailEffect.NavigateLogin -> {
-                            navController.navigate(Routes.Login) {
-                                popUpTo(Routes.VerifyEmail) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                        is VerifyEmailEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
-                    }
-                }
-            }
-
-            VerifyEmailScreen(
-                uiState = uiState,
-                snackbarHostState = snackbarHostState,
-                onOtpChange = viewModel::onOtpChange,
-                onVerify = viewModel::verify,
-                onResend = viewModel::resend,
-                onBack = viewModel::backToLogin
-            )
-        }
-        composable(Routes.ForgotPassword) {
-            val viewModel: ForgotPasswordViewModel = viewModel(
-                factory = viewModelFactory {
-                    ForgotPasswordViewModel(
-                        forgotPasswordUseCase = appContainer.forgotPasswordUseCase,
-                        resetPasswordUseCase = appContainer.resetPasswordUseCase
-                    )
-                }
-            )
-            val uiState by viewModel.uiState.collectAsState()
-            val snackbarHostState = remember { SnackbarHostState() }
-
-            LaunchedEffect(viewModel) {
-                viewModel.effects.collect { effect ->
-                    when (effect) {
-                        ForgotPasswordEffect.NavigateLogin -> navController.popBackStack()
-                        is ForgotPasswordEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
-                    }
-                }
-            }
-
-            ForgotPasswordScreen(
-                uiState = uiState,
-                snackbarHostState = snackbarHostState,
-                onEmailChange = viewModel::onEmailChange,
-                onOtpChange = viewModel::onOtpChange,
-                onNewPasswordChange = viewModel::onNewPasswordChange,
-                onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
-                onSendCode = viewModel::sendCode,
-                onResetPassword = viewModel::resetPassword,
-                onBack = viewModel::backToLogin
-            )
-        }
-        composable(
             route = Routes.Setup + "/{userName}",
             arguments = listOf(navArgument("userName") { type = NavType.StringType })
         ) { backStackEntry ->
@@ -279,7 +180,7 @@ fun AppNavGraph(
             val viewModel: SetupViewModel = viewModel(
                 factory = viewModelFactory {
                     SetupViewModel(
-                        updateProfileUseCase = appContainer.updateProfileUseCase,
+                        authRepository = appContainer.authRepository,
                         userName = userName
                     )
                 }
@@ -357,7 +258,7 @@ fun AppNavGraph(
         composable(Routes.Decks) {
             val viewModel: DeckListViewModel = viewModel(
                 factory = viewModelFactory {
-                    DeckListViewModel(appContainer.getDecksUseCase)
+                    DeckListViewModel(appContainer.deckRepository)
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
@@ -401,7 +302,7 @@ fun AppNavGraph(
         composable(Routes.CreateDeck) {
             val viewModel: CreateDeckViewModel = viewModel(
                 factory = viewModelFactory {
-                    CreateDeckViewModel(appContainer.createDeckUseCase)
+                    CreateDeckViewModel(appContainer.deckRepository)
                 }
             )
             val uiState by viewModel.uiState.collectAsState()
@@ -453,10 +354,7 @@ fun AppNavGraph(
                 factory = viewModelFactory {
                     DeckDetailViewModel(
                         deckId = deckId,
-                        getDeckDetailUseCase = appContainer.getDeckDetailUseCase,
-                        getDeckItemsUseCase = appContainer.getDeckItemsUseCase,
-                        importDeckItemsUseCase = appContainer.importDeckItemsUseCase,
-                        exportDeckItemsUseCase = appContainer.exportDeckItemsUseCase
+                        deckRepository = appContainer.deckRepository
                     )
                 }
             )
@@ -545,8 +443,7 @@ fun AppNavGraph(
             val viewModel: FlashcardViewModel = viewModel(
                 factory = viewModelFactory {
                     FlashcardViewModel(
-                        getReviewCardsUseCase = appContainer.getReviewCardsUseCase,
-                        submitReviewUseCase = appContainer.submitReviewUseCase,
+                        learningRepository = appContainer.learningRepository,
                         mode = "new"
                     )
                 }
@@ -600,8 +497,7 @@ fun AppNavGraph(
                 key = "review-due",
                 factory = viewModelFactory {
                     ReviewDueViewModel(
-                        getReviewCardsUseCase = appContainer.getReviewCardsUseCase,
-                        submitReviewUseCase = appContainer.submitReviewUseCase
+                        learningRepository = appContainer.learningRepository
                     )
                 }
             )
@@ -654,8 +550,7 @@ fun AppNavGraph(
                 key = "learn-deck-$deckId-$mode",
                 factory = viewModelFactory {
                     FlashcardViewModel(
-                        getReviewCardsUseCase = appContainer.getReviewCardsUseCase,
-                        submitReviewUseCase = appContainer.submitReviewUseCase,
+                        learningRepository = appContainer.learningRepository,
                         deckId = deckId,
                         mode = mode
                     )
@@ -756,11 +651,8 @@ fun AppNavGraph(
             val viewModel: ProfileViewModel = viewModel(
                 factory = viewModelFactory {
                     ProfileViewModel(
-                        getProfileUseCase = appContainer.getProfileUseCase,
-                        updateProfileUseCase = appContainer.updateProfileUseCase,
-                        getNotificationSettingsUseCase = appContainer.getNotificationSettingsUseCase,
-                        updateNotificationSettingsUseCase = appContainer.updateNotificationSettingsUseCase,
-                        logoutUseCase = appContainer.logoutUseCase,
+                        authRepository = appContainer.authRepository,
+                        notificationRepository = appContainer.notificationRepository,
                         reminderScheduler = appContainer.reminderScheduler
                     )
                 }
@@ -797,9 +689,6 @@ fun AppNavGraph(
                     },
                     onDailyTimeChange = { value ->
                         viewModel.onEvent(ProfileEvent.DailyTimeChanged(value))
-                    },
-                    onEmailEnabledChange = { value ->
-                        viewModel.onEvent(ProfileEvent.EmailEnabledChanged(value))
                     },
                     onPushEnabledChange = { value ->
                         viewModel.onEvent(ProfileEvent.PushEnabledChanged(value))
@@ -845,10 +734,7 @@ private fun WordEditorRoute(
             WordEditorViewModel(
                 deckId = deckId,
                 itemId = itemId,
-                getDeckItemsUseCase = appContainer.getDeckItemsUseCase,
-                createWordUseCase = appContainer.createWordUseCase,
-                updateWordUseCase = appContainer.updateWordUseCase,
-                deleteWordUseCase = appContainer.deleteWordUseCase
+                deckRepository = appContainer.deckRepository
             )
         }
     )

@@ -1,12 +1,15 @@
 package com.example.minlishapp_learnenglish.data.repository
 
+import com.example.minlishapp_learnenglish.core.result.AppError
 import com.example.minlishapp_learnenglish.core.result.AppResult
-import com.example.minlishapp_learnenglish.core.result.map
-import com.example.minlishapp_learnenglish.data.remote.api.NotificationApi
-import com.example.minlishapp_learnenglish.data.remote.dto.UpdateNotificationPreferencesRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.toDomain
+import com.example.minlishapp_learnenglish.data.local.dao.NotificationSettingsDao
+import com.example.minlishapp_learnenglish.data.local.dao.UserDao
+import com.example.minlishapp_learnenglish.data.local.database.DatabaseSeeder
+import com.example.minlishapp_learnenglish.data.local.database.MinLishDatabase
+import com.example.minlishapp_learnenglish.data.local.entity.NotificationSettingsEntity
+import com.example.minlishapp_learnenglish.data.local.mapper.toDomain
 import com.example.minlishapp_learnenglish.domain.model.NotificationSettings
-import com.squareup.moshi.Moshi
+import kotlinx.coroutines.CancellationException
 
 interface NotificationRepository {
     suspend fun getPreferences(): AppResult<NotificationSettings>
@@ -20,13 +23,20 @@ interface NotificationRepository {
 }
 
 class DefaultNotificationRepository(
-    private val notificationApi: NotificationApi,
-    private val moshi: Moshi
+    private val database: MinLishDatabase,
+    private val notificationSettingsDao: NotificationSettingsDao,
+    private val userDao: UserDao
 ) : NotificationRepository {
     override suspend fun getPreferences(): AppResult<NotificationSettings> {
-        return safeApiCall(moshi) {
-            notificationApi.getPreferences()
-        }.map { it.toDomain() }
+        return localCall {
+            val userId = userDao.requireUserId()
+            DatabaseSeeder.seedUserIfNeeded(database, userId)
+            val settings = notificationSettingsDao.getSettings(userId)
+                ?: NotificationSettingsEntity(userId = userId).also {
+                    notificationSettingsDao.upsertSettings(it)
+                }
+            settings.toDomain()
+        }
     }
 
     override suspend fun updatePreferences(
@@ -35,15 +45,37 @@ class DefaultNotificationRepository(
         emailEnabled: Boolean?,
         pushEnabled: Boolean?
     ): AppResult<NotificationSettings> {
-        return safeApiCall(moshi) {
-            notificationApi.updatePreferences(
-                UpdateNotificationPreferencesRequestDto(
-                    dailyTime = dailyTime,
-                    timezone = timezone,
-                    emailEnabled = emailEnabled,
-                    pushEnabled = pushEnabled
+        return localCall {
+            val userId = userDao.requireUserId()
+            DatabaseSeeder.seedUserIfNeeded(database, userId)
+            val currentSettings = notificationSettingsDao.getSettings(userId)
+                ?: NotificationSettingsEntity(userId = userId)
+            val updatedSettings = currentSettings.copy(
+                dailyTime = dailyTime ?: currentSettings.dailyTime,
+                timezone = timezone ?: currentSettings.timezone,
+                emailEnabled = false,
+                pushEnabled = pushEnabled ?: currentSettings.pushEnabled
+            )
+            notificationSettingsDao.upsertSettings(updatedSettings)
+            updatedSettings.toDomain()
+        }
+    }
+
+    private suspend fun <T> localCall(block: suspend () -> T): AppResult<T> {
+        return try {
+            AppResult.Success(block())
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: LocalAuthRequiredException) {
+            AppResult.Failure(AppError.Validation(message = error.message ?: "Please log in first."))
+        } catch (error: IllegalArgumentException) {
+            AppResult.Failure(AppError.Validation(message = error.message ?: "Invalid input."))
+        } catch (error: Exception) {
+            AppResult.Failure(
+                AppError.Unknown(
+                    message = error.message ?: "Local database error."
                 )
             )
-        }.map { it.toDomain() }
+        }
     }
 }

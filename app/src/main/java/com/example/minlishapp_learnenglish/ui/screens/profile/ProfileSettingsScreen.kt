@@ -21,7 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Alarm
-import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
@@ -65,7 +64,6 @@ fun ProfileSettingsScreen(
     onLevelChange: (String) -> Unit,
     onDailyNewWordsChange: (String) -> Unit,
     onDailyTimeChange: (String) -> Unit,
-    onEmailEnabledChange: (Boolean) -> Unit,
     onPushEnabledChange: (Boolean) -> Unit,
     onSaveProfile: () -> Unit,
     onSaveNotifications: () -> Unit,
@@ -101,7 +99,6 @@ fun ProfileSettingsScreen(
                 onLevelChange = onLevelChange,
                 onDailyNewWordsChange = onDailyNewWordsChange,
                 onDailyTimeChange = onDailyTimeChange,
-                onEmailEnabledChange = onEmailEnabledChange,
                 onPushEnabledChange = onPushEnabledChange,
                 onSaveProfile = onSaveProfile,
                 onSaveNotifications = onSaveNotifications,
@@ -121,7 +118,6 @@ private fun ProfileSettingsContent(
     onLevelChange: (String) -> Unit,
     onDailyNewWordsChange: (String) -> Unit,
     onDailyTimeChange: (String) -> Unit,
-    onEmailEnabledChange: (Boolean) -> Unit,
     onPushEnabledChange: (Boolean) -> Unit,
     onSaveProfile: () -> Unit,
     onSaveNotifications: () -> Unit,
@@ -151,7 +147,6 @@ private fun ProfileSettingsContent(
         NotificationSettingsCard(
             uiState = uiState,
             onDailyTimeChange = onDailyTimeChange,
-            onEmailEnabledChange = onEmailEnabledChange,
             onPushEnabledChange = onPushEnabledChange,
             onSaveNotifications = onSaveNotifications
         )
@@ -347,7 +342,6 @@ private fun ProfileFormCard(
 private fun NotificationSettingsCard(
     uiState: ProfileUiState,
     onDailyTimeChange: (String) -> Unit,
-    onEmailEnabledChange: (Boolean) -> Unit,
     onPushEnabledChange: (Boolean) -> Unit,
     onSaveNotifications: () -> Unit
 ) {
@@ -358,16 +352,9 @@ private fun NotificationSettingsCard(
         ToggleSettingRow(
             icon = Icons.Outlined.Alarm,
             title = "Daily study reminder",
-            subtitle = "Remind me when it is time to study each day.",
+            subtitle = "Local push reminder stored on this device.",
             checked = uiState.pushEnabled,
             onCheckedChange = onPushEnabledChange
-        )
-        ToggleSettingRow(
-            icon = Icons.Outlined.Email,
-            title = "Email reminder",
-            subtitle = "Receive email reminders for your learning schedule.",
-            checked = uiState.emailEnabled,
-            onCheckedChange = onEmailEnabledChange
         )
         MinLishTextField(
             value = uiState.dailyTime,

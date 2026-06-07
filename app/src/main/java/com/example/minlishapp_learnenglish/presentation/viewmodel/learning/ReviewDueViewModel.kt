@@ -3,11 +3,10 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.learning
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
+import com.example.minlishapp_learnenglish.data.repository.LearningRepository
 import com.example.minlishapp_learnenglish.domain.model.ReviewCard
 import com.example.minlishapp_learnenglish.domain.model.ReviewRating
 import com.example.minlishapp_learnenglish.domain.model.ReviewSessionSummary
-import com.example.minlishapp_learnenglish.domain.usecase.learning.GetReviewCardsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.learning.SubmitReviewUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -67,8 +66,7 @@ sealed interface ReviewDueEffect {
 }
 
 class ReviewDueViewModel(
-    private val getReviewCardsUseCase: GetReviewCardsUseCase,
-    private val submitReviewUseCase: SubmitReviewUseCase
+    private val learningRepository: LearningRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ReviewDueUiState())
     val uiState: StateFlow<ReviewDueUiState> = _uiState.asStateFlow()
@@ -104,7 +102,7 @@ class ReviewDueViewModel(
                 )
             }
 
-            when (val result = getReviewCardsUseCase(mode = "due")) {
+            when (val result = learningRepository.getReviewCards(mode = "due")) {
                 is AppResult.Success -> {
                     val cards = result.data
                     cardStartedAtMs = System.currentTimeMillis()
@@ -175,7 +173,7 @@ class ReviewDueViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
             when (
-                val result = submitReviewUseCase(
+                val result = learningRepository.submitReview(
                     vocabularyItemId = card.id,
                     rating = rating,
                     responseMs = elapsedResponseMs()

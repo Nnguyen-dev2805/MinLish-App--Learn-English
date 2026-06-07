@@ -3,11 +3,10 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.learning
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
+import com.example.minlishapp_learnenglish.data.repository.LearningRepository
 import com.example.minlishapp_learnenglish.domain.model.ReviewCard
 import com.example.minlishapp_learnenglish.domain.model.ReviewRating
 import com.example.minlishapp_learnenglish.domain.model.ReviewSessionSummary
-import com.example.minlishapp_learnenglish.domain.usecase.learning.GetReviewCardsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.learning.SubmitReviewUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -75,8 +74,7 @@ sealed interface FlashcardEffect {
 }
 
 class FlashcardViewModel(
-    private val getReviewCardsUseCase: GetReviewCardsUseCase,
-    private val submitReviewUseCase: SubmitReviewUseCase,
+    private val learningRepository: LearningRepository,
     private val deckId: Long? = null,
     private val mode: String? = null
 ) : ViewModel() {
@@ -118,7 +116,7 @@ class FlashcardViewModel(
                 )
             }
 
-            when (val result = getReviewCardsUseCase(deckId = deckId, mode = mode)) {
+            when (val result = learningRepository.getReviewCards(deckId = deckId, mode = mode)) {
                 is AppResult.Success -> {
                     cardStartedAtMs = System.currentTimeMillis()
                     _uiState.update {
@@ -200,7 +198,7 @@ class FlashcardViewModel(
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
             val responseMs = elapsedResponseMs()
             when (
-                val result = submitReviewUseCase(
+                val result = learningRepository.submitReview(
                     vocabularyItemId = card.id,
                     rating = rating,
                     responseMs = responseMs
@@ -261,7 +259,7 @@ class FlashcardViewModel(
 
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
             when (
-                val result = submitReviewUseCase(
+                val result = learningRepository.submitReview(
                     vocabularyItemId = card.id,
                     rating = ReviewRating.Again,
                     responseMs = elapsedResponseMs()

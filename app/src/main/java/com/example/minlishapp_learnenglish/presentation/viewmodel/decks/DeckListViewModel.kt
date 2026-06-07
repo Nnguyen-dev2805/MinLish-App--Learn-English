@@ -3,8 +3,8 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.decks
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
+import com.example.minlishapp_learnenglish.data.repository.DeckRepository
 import com.example.minlishapp_learnenglish.domain.model.VocabularyDeck
-import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDecksUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -52,7 +52,7 @@ enum class DeckFilter(val label: String) {
 }
 
 class DeckListViewModel(
-    private val getDecksUseCase: GetDecksUseCase
+    private val deckRepository: DeckRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DeckListUiState())
     val uiState: StateFlow<DeckListUiState> = _uiState.asStateFlow()
@@ -85,7 +85,7 @@ class DeckListViewModel(
                 )
             }
 
-            when (val result = getDecksUseCase()) {
+            when (val result = deckRepository.getDecks()) {
                 is AppResult.Success -> {
                     _uiState.update {
                         val filtered = filterDecks(result.data, it.query, it.selectedFilter)

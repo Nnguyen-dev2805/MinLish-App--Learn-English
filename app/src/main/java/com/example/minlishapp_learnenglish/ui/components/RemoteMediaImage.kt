@@ -1,5 +1,6 @@
 package com.example.minlishapp_learnenglish.ui.components
 
+import android.content.Context
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,8 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.core.network.BackendUrlResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
@@ -34,10 +35,11 @@ fun RemoteMediaImage(
     modifier: Modifier = Modifier,
     contentDescription: String? = null
 ) {
-    val resolvedUrl = remember(imageUrl) { BackendUrlResolver.resolve(imageUrl) }
-    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, resolvedUrl) {
+    val context = LocalContext.current
+    val mediaSource = remember(imageUrl) { imageUrl.toMediaSourceOrNull() }
+    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, mediaSource) {
         value = withContext(Dispatchers.IO) {
-            resolvedUrl?.let { loadImageBitmap(it) }
+            mediaSource?.let { loadImageBitmap(context, it) }
         }
     }
 
@@ -51,7 +53,7 @@ fun RemoteMediaImage(
     ) {
         when (val loadedBitmap = bitmap) {
             null -> {
-                if (resolvedUrl == null) {
+                if (mediaSource == null) {
                     Icon(
                         imageVector = Icons.Outlined.Photo,
                         contentDescription = null,
@@ -75,10 +77,37 @@ fun RemoteMediaImage(
     }
 }
 
-private fun loadImageBitmap(url: String): androidx.compose.ui.graphics.ImageBitmap? {
+private sealed interface MediaSource {
+    data class Asset(val path: String) : MediaSource
+    data class RemoteUrl(val url: String) : MediaSource
+}
+
+private fun String.toMediaSourceOrNull(): MediaSource? {
+    val trimmed = trim()
+    return when {
+        trimmed.startsWith("asset://", ignoreCase = true) -> {
+            MediaSource.Asset(trimmed.removePrefix("asset://"))
+        }
+        trimmed.startsWith("http://", ignoreCase = true) ||
+            trimmed.startsWith("https://", ignoreCase = true) -> {
+            MediaSource.RemoteUrl(trimmed)
+        }
+        else -> null
+    }
+}
+
+private fun loadImageBitmap(
+    context: Context,
+    source: MediaSource
+): androidx.compose.ui.graphics.ImageBitmap? {
     return runCatching {
-        URL(url).openStream().use { input ->
-            BitmapFactory.decodeStream(input)?.asImageBitmap()
+        when (source) {
+            is MediaSource.Asset -> context.assets.open(source.path).use { input ->
+                BitmapFactory.decodeStream(input)?.asImageBitmap()
+            }
+            is MediaSource.RemoteUrl -> URL(source.url).openStream().use { input ->
+                BitmapFactory.decodeStream(input)?.asImageBitmap()
+            }
         }
     }.getOrNull()
 }

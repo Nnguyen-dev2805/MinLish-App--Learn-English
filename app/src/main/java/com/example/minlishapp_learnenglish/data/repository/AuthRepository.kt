@@ -1,40 +1,23 @@
 package com.example.minlishapp_learnenglish.data.repository
 
+import com.example.minlishapp_learnenglish.core.result.AppError
 import com.example.minlishapp_learnenglish.core.result.AppResult
-import com.example.minlishapp_learnenglish.core.result.map
-import com.example.minlishapp_learnenglish.core.storage.TokenStorage
-import com.example.minlishapp_learnenglish.data.remote.api.AuthApi
-import com.example.minlishapp_learnenglish.data.remote.dto.GoogleLoginRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.ForgotPasswordRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.LoginRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.LogoutRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.RefreshRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.ResendVerificationOtpRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.RegisterRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.ResetPasswordRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.UpdateUserRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.VerifyEmailRequestDto
-import com.example.minlishapp_learnenglish.data.remote.dto.toDomain
-import com.example.minlishapp_learnenglish.domain.model.AuthSession
+import com.example.minlishapp_learnenglish.data.local.dao.UserDao
+import com.example.minlishapp_learnenglish.data.local.entity.UserEntity
+import com.example.minlishapp_learnenglish.data.local.mapper.toDomain
 import com.example.minlishapp_learnenglish.domain.model.User
-import com.squareup.moshi.Moshi
+import kotlinx.coroutines.CancellationException
 
 interface AuthRepository {
-    suspend fun login(email: String, password: String): AppResult<AuthSession>
+    suspend fun login(email: String, password: String): AppResult<User>
     suspend fun register(
         name: String,
         email: String,
         password: String,
         goal: String? = null,
         level: String? = null
-    ): AppResult<AuthSession>
-    suspend fun loginWithGoogle(idToken: String): AppResult<AuthSession>
-    suspend fun refresh(refreshToken: String): AppResult<String>
-    suspend fun logout(refreshToken: String): AppResult<Unit>
-    suspend fun verifyEmail(email: String, otp: String): AppResult<AuthSession>
-    suspend fun resendVerificationOtp(email: String): AppResult<String>
-    suspend fun forgotPassword(email: String): AppResult<String>
-    suspend fun resetPassword(email: String, otp: String, newPassword: String): AppResult<String>
+    ): AppResult<User>
+    suspend fun logout(refreshToken: String = ""): AppResult<Unit>
     suspend fun getMe(): AppResult<User>
     suspend fun updateMe(
         name: String? = null,
@@ -45,13 +28,25 @@ interface AuthRepository {
 }
 
 class DefaultAuthRepository(
-    private val authApi: AuthApi,
-    private val tokenStorage: TokenStorage,
-    private val moshi: Moshi
+    private val userDao: UserDao
 ) : AuthRepository {
-    override suspend fun login(email: String, password: String): AppResult<AuthSession> {
-        return saveSessionResult {
-            authApi.login(LoginRequestDto(email = email, password = password))
+    override suspend fun login(email: String, password: String): AppResult<User> {
+        return localCall {
+            val cleanEmail = email.trim().lowercase()
+            require(cleanEmail.isNotBlank()) { "Email is required." }
+            require(password.isNotBlank()) { "Password is required." }
+
+            val user = userDao.getUserByEmail(cleanEmail)
+                ?: throw LocalAuthException("Invalid email or password.")
+            if (user.password != password) {
+                throw LocalAuthException("Invalid email or password.")
+            }
+
+            userDao.logoutAll()
+            userDao.markLoggedIn(user.id)
+            val loggedInUser = userDao.getUserById(user.id)
+                ?: throw LocalAuthException("User not found.")
+            loggedInUser.toDomain()
         }
     }
 
@@ -61,93 +56,50 @@ class DefaultAuthRepository(
         password: String,
         goal: String?,
         level: String?
-    ): AppResult<AuthSession> {
-        tokenStorage.clearTokens()
-        return safeApiCall(moshi) {
-            authApi.register(
-                RegisterRequestDto(
-                    email = email,
+    ): AppResult<User> {
+        return localCall {
+            val cleanName = name.trim()
+            val cleanEmail = email.trim().lowercase()
+            require(cleanName.isNotBlank()) { "Full name is required." }
+            require(cleanEmail.isNotBlank()) { "Email is required." }
+            require(password.length >= 6) { "Password must be at least 6 characters." }
+
+            if (userDao.getUserByEmail(cleanEmail) != null) {
+                throw LocalAuthException("This email is already registered.")
+            }
+
+            userDao.logoutAll()
+            // Demo-only: password is stored locally in plain text to keep the course project simple.
+            val userId = userDao.insertUser(
+                UserEntity(
+                    email = cleanEmail,
                     password = password,
-                    name = name,
+                    name = cleanName,
                     goal = goal,
-                    level = level
+                    level = level,
+                    dailyNewWords = 10,
+                    isLoggedIn = true
                 )
             )
-        }.map { it.toDomain() }
-    }
-
-    override suspend fun loginWithGoogle(idToken: String): AppResult<AuthSession> {
-        return saveSessionResult {
-            authApi.loginWithGoogle(GoogleLoginRequestDto(idToken = idToken))
-        }
-    }
-
-    override suspend fun refresh(refreshToken: String): AppResult<String> {
-        return safeApiCall(moshi) {
-            authApi.refresh(RefreshRequestDto(refreshToken = refreshToken)).accessToken
-        }.also { result ->
-            if (result is AppResult.Success) {
-                tokenStorage.updateAccessToken(result.data)
-            }
+            val user = userDao.getUserById(userId)
+                ?: throw LocalAuthException("Created user not found.")
+            user.toDomain()
         }
     }
 
     override suspend fun logout(refreshToken: String): AppResult<Unit> {
-        val result = safeApiCall(moshi) {
-            authApi.logout(LogoutRequestDto(refreshToken = refreshToken))
-        }
-        if (result is AppResult.Success) {
-            tokenStorage.clearTokens()
-        }
-        return result
-    }
-
-    override suspend fun verifyEmail(email: String, otp: String): AppResult<AuthSession> {
-        return safeApiCall(moshi) {
-            authApi.verifyEmail(VerifyEmailRequestDto(email = email, otp = otp))
-        }.map { response ->
-            response.toDomain().also { session ->
-                tokenStorage.saveTokens(
-                    accessToken = session.accessToken,
-                    refreshToken = session.refreshToken
-                )
-            }
-        }
-    }
-
-    override suspend fun resendVerificationOtp(email: String): AppResult<String> {
-        return safeApiCall(moshi) {
-            authApi.resendVerificationOtp(ResendVerificationOtpRequestDto(email = email)).message
-        }
-    }
-
-    override suspend fun forgotPassword(email: String): AppResult<String> {
-        return safeApiCall(moshi) {
-            authApi.forgotPassword(ForgotPasswordRequestDto(email = email)).message
-        }
-    }
-
-    override suspend fun resetPassword(
-        email: String,
-        otp: String,
-        newPassword: String
-    ): AppResult<String> {
-        return safeApiCall(moshi) {
-            authApi.resetPassword(
-                ResetPasswordRequestDto(
-                    email = email,
-                    otp = otp,
-                    newPassword = newPassword
-                )
-            ).message
+        return localCall {
+            userDao.logoutAll()
         }
     }
 
 
     override suspend fun getMe(): AppResult<User> {
-        return safeApiCall(moshi) {
-            authApi.getMe()
-        }.map { it.toDomain() }
+        return localCall {
+            val user = userDao.getLoggedInUser()
+                ?: throw LocalAuthException("Please log in first.")
+            user.toDomain()
+        }
     }
 
     override suspend fun updateMe(
@@ -156,28 +108,37 @@ class DefaultAuthRepository(
         level: String?,
         dailyNewWords: Int?
     ): AppResult<User> {
-        return safeApiCall(moshi) {
-            authApi.updateMe(
-                UpdateUserRequestDto(
-                    name = name,
-                    goal = goal,
-                    level = level,
-                    dailyNewWords = dailyNewWords
-                )
+        return localCall {
+            val currentUser = userDao.getLoggedInUser()
+                ?: throw LocalAuthException("Please log in first.")
+            val updatedUser = currentUser.copy(
+                name = name?.trim()?.takeIf { it.isNotBlank() } ?: currentUser.name,
+                goal = goal?.trim()?.takeIf { it.isNotBlank() } ?: currentUser.goal,
+                level = level?.trim()?.takeIf { it.isNotBlank() } ?: currentUser.level,
+                dailyNewWords = dailyNewWords ?: currentUser.dailyNewWords
             )
-        }.map { it.toDomain() }
-    }
-
-    private suspend fun saveSessionResult(
-        call: suspend () -> com.example.minlishapp_learnenglish.data.remote.dto.AuthResponseDto
-    ): AppResult<AuthSession> {
-        return safeApiCall(moshi, call).map { response ->
-            response.toDomain().also { session ->
-                tokenStorage.saveTokens(
-                    accessToken = session.accessToken,
-                    refreshToken = session.refreshToken
-                )
-            }
+            userDao.updateUser(updatedUser)
+            updatedUser.toDomain()
         }
     }
+
+    private suspend fun <T> localCall(block: suspend () -> T): AppResult<T> {
+        return try {
+            AppResult.Success(block())
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: LocalAuthException) {
+            AppResult.Failure(AppError.Validation(message = error.message ?: "Authentication failed."))
+        } catch (error: IllegalArgumentException) {
+            AppResult.Failure(AppError.Validation(message = error.message ?: "Invalid input."))
+        } catch (error: Exception) {
+            AppResult.Failure(
+                AppError.Unknown(
+                    message = error.message ?: "Local database error."
+                )
+            )
+        }
+    }
+
+    private class LocalAuthException(message: String) : Exception(message)
 }

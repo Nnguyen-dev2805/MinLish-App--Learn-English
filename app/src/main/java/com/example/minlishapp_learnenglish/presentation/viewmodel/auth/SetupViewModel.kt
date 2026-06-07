@@ -3,7 +3,7 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
-import com.example.minlishapp_learnenglish.domain.usecase.profile.UpdateProfileUseCase
+import com.example.minlishapp_learnenglish.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -33,7 +33,7 @@ sealed interface SetupEffect {
 }
 
 class SetupViewModel(
-    private val updateProfileUseCase: UpdateProfileUseCase,
+    private val authRepository: AuthRepository,
     private val userName: String
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SetupUiState())
@@ -59,7 +59,7 @@ class SetupViewModel(
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            when (val result = updateProfileUseCase(
+            when (val result = authRepository.updateMe(
                 name = userName,
                 goal = state.goal,
                 level = state.level,

@@ -3,7 +3,7 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.decks
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
-import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateDeckUseCase
+import com.example.minlishapp_learnenglish.data.repository.DeckRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -41,7 +41,7 @@ sealed interface CreateDeckEffect {
 }
 
 class CreateDeckViewModel(
-    private val createDeckUseCase: CreateDeckUseCase
+    private val deckRepository: DeckRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CreateDeckUiState())
     val uiState: StateFlow<CreateDeckUiState> = _uiState.asStateFlow()
@@ -98,7 +98,7 @@ class CreateDeckViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, apiError = null, nameError = null) }
             when (
-                val result = createDeckUseCase(
+                val result = deckRepository.createDeck(
                     name = state.name,
                     description = state.description,
                     tags = state.tags

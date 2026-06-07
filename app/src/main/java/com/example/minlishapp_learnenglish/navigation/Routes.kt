@@ -4,8 +4,6 @@ object Routes {
     const val Splash = "splash"
     const val Login = "login"
     const val Register = "register"
-    const val VerifyEmail = "verify-email/{email}/{userName}"
-    const val ForgotPassword = "forgot-password"
     const val Setup = "setup"
     const val Home = "main/home"
     const val Decks = "main/decks"
@@ -21,11 +19,6 @@ object Routes {
     const val ReviewResults = "learning/review-results"
 
     fun deckDetail(deckId: Long): String = "decks/$deckId"
-    fun verifyEmail(email: String, userName: String): String {
-        val encodedEmail = java.net.URLEncoder.encode(email, "UTF-8")
-        val encodedName = java.net.URLEncoder.encode(userName, "UTF-8")
-        return "verify-email/$encodedEmail/$encodedName"
-    }
     fun addWord(deckId: Long): String = "decks/$deckId/words/add"
     fun editWord(deckId: Long, itemId: Long): String = "decks/$deckId/items/$itemId/edit"
     fun learnDeck(deckId: Long, mode: String = "deck_all"): String = "main/learn/deck/$deckId/$mode"

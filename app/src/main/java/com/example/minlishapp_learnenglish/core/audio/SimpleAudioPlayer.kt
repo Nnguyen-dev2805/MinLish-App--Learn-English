@@ -1,9 +1,12 @@
 package com.example.minlishapp_learnenglish.core.audio
 
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 
-class SimpleAudioPlayer {
+class SimpleAudioPlayer(
+    private val context: Context? = null
+) {
     private var mediaPlayer: MediaPlayer? = null
 
     fun play(url: String, onError: () -> Unit) {
@@ -18,7 +21,19 @@ class SimpleAudioPlayer {
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .build()
             )
-            player.setDataSource(url)
+            if (url.startsWith("asset://", ignoreCase = true)) {
+                val assetPath = url.removePrefix("asset://")
+                val appContext = context ?: error("Context is required for asset audio.")
+                appContext.assets.openFd(assetPath).use { descriptor ->
+                    player.setDataSource(
+                        descriptor.fileDescriptor,
+                        descriptor.startOffset,
+                        descriptor.length
+                    )
+                }
+            } else {
+                player.setDataSource(url)
+            }
             player.setOnPreparedListener { it.start() }
             player.setOnCompletionListener { release() }
             player.setOnErrorListener { _, _, _ ->

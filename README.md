@@ -1,134 +1,473 @@
-# MinLish Vocabulary App
+# MinLish — Learn English Vocabulary
 
-MinLish là đồ án Android học từ vựng tiếng Anh bằng flashcard, SM-2 spaced repetition, deck từ vựng, dashboard tiến độ và nhắc học hằng ngày.
+Ứng dụng Android học từ vựng tiếng Anh bằng flashcard và spaced repetition. Chạy **hoàn toàn local** trên thiết bị — không cần server, Docker hay internet.
 
-## Tech Stack
+Mở project bằng **Android Studio** → chọn emulator/thiết bị → Run `app`.
 
-- Android: Kotlin, Jetpack Compose, Material 3, Navigation Compose, MVVM, Retrofit, OkHttp, Moshi, DataStore, Encrypted token storage, WorkManager.
-- Backend: FastAPI, SQLAlchemy 2.x, Alembic, PostgreSQL, Pydantic v2, JWT auth, pytest.
-- Data demo: `data/4000_Essential_English_Words_2_-_Vietnamese.apkg`.
+---
 
-Android emulator gọi backend qua:
+## Mục lục
 
-```txt
-http://10.0.2.2:8000/api/v1/
+1. [Tính năng](#tính-năng)
+2. [Kiến trúc tổng thể](#kiến-trúc-tổng-thể)
+3. [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+4. [Ý nghĩa từng package](#ý-nghĩa-từng-package)
+5. [Converter vs Mapper](#converter-vs-mapper)
+6. [Database & tách dữ liệu theo user](#database--tách-dữ-liệu-theo-user)
+7. [Seeding dữ liệu](#seeding-dữ-liệu)
+8. [Repositories & UseCase](#repositories--usecase)
+9. [Luồng dữ liệu mẫu](#luồng-dữ-liệu-mẫu)
+10. [Navigation & Auth](#navigation--auth)
+11. [Giới hạn v1 & Troubleshooting](#giới-hạn-v1--troubleshooting)
+
+---
+
+## Tính năng
+
+- Đăng ký / đăng nhập theo email (local Room)
+- 30 bộ từ seed từ Anki APKG (600 từ, có ảnh + audio)
+- Tạo deck và quản lý từ vựng cá nhân
+- Học flashcard với rating Again / Hard / Good / Easy (SM-2 đơn giản hóa)
+- Dashboard tiến độ: streak, accuracy, từ đã học, từ đến hạn
+- Nhắc học local qua WorkManager
+- **Mỗi user có tiến độ riêng theo email** — catalog từ vựng seed dùng chung
+
+**Tech stack:** Kotlin · Jetpack Compose · Material 3 · Room · Coroutines · WorkManager · MVVM
+
+---
+
+## Kiến trúc tổng thể
+
+```
+┌──────────────┐     collect      ┌──────────────┐
+│  ui/screens  │ ◄─────────────── │  ViewModel   │
+│  (Compose)   │   UiState        │  + UiState   │
+└──────────────┘                  └──────┬───────┘
+                                         │ gọi
+                                  ┌──────▼───────┐
+                                  │   UseCase    │  (2 cái — tùy màn)
+                                  └──────┬───────┘
+                                         │ AppResult<DomainModel>
+                                  ┌──────▼───────┐
+                                  │  Repository  │  ← Mapper Entity→Domain
+                                  └──────┬───────┘
+                                         │
+                    ┌────────────────────┼────────────────────┐
+             ┌──────▼──────┐    ┌────────▼────────┐   TypeConverter
+             │     DAO     │    │     Entity      │   (Room: List<String>)
+             └──────┬──────┘    └─────────────────┘
+                    ▼
+               SQLite (minlish.db)
 ```
 
-## Chạy Backend
+**Nguyên tắc:**
 
-Tạo môi trường Python nếu chưa có:
+- Một luồng: `UI → ViewModel → Repository → DAO → SQLite`
+- Không Retrofit, không JWT, không DTO — dùng **Entity ↔ Domain Model** qua **Mapper**
+- Manual DI qua `AppContainer` (không Hilt)
+- Repository bọc kết quả trong `AppResult<T>` (Success / Failure)
+
+### Các loại object — đừng nhầm
+
+| Loại | Package | Vai trò |
+|------|---------|---------|
+| **UiState** | `presentation/viewmodel/` | State màn hình (loading, error, list…) — Compose đọc qua `StateFlow` |
+| **Domain Model** | `domain/model/` | Dữ liệu sạch cho business/UI, có computed property |
+| **Entity** | `data/local/entity/` | Một dòng bảng SQLite (`@Entity`) |
+| **DAO** | `data/local/dao/` | Interface SQL — trả Entity hoặc POJO query |
+| **Mapper** | `data/local/mapper/` | Entity → Domain (Repository gọi) |
+| **TypeConverter** | `data/local/database/` | Kiểu Kotlin ↔ cột SQLite (Room tự gọi) |
+
+---
+
+## Cấu trúc thư mục
+
+```
+app/src/main/java/com/example/minlishapp_learnenglish/
+├── core/                    # AppContainer, AppResult, audio, notification
+├── data/
+│   ├── local/
+│   │   ├── entity/          # Room entities
+│   │   ├── dao/             # Room DAOs
+│   │   ├── database/        # MinLishDatabase, DatabaseSeeder, StringListConverter
+│   │   └── mapper/          # LocalMappers.kt — Entity ↔ Domain
+│   └── repository/          # Auth, Deck, Learning, Analytics, Notification
+├── domain/
+│   ├── model/               # User, VocabularyDeck, ReviewCard, ProgressStats…
+│   └── usecase/             # LoadHomeUseCase, LoadProgressAnalyticsUseCase
+├── presentation/viewmodel/  # ViewModel theo feature
+├── navigation/              # Routes, AppNavGraph
+└── ui/
+    ├── screens/             # Màn hình Compose
+    ├── components/          # Widget tái sử dụng
+    └── theme/               # MinLishTheme
+
+app/src/main/assets/
+├── seed_vocabulary.json     # 30 unit, 600 từ
+└── seed_media/              # Ảnh + audio flashcard
+
+scripts/extract_apkg_to_seed_json.py
+data/4000_Essential_English_Words_2_-_Vietnamese.apkg
+```
+
+### `AppContainer` — Dependency Injection
+
+`MainActivity` tạo `AppContainer(applicationContext)` và truyền xuống navigation/ViewModel:
+
+```
+MinLishDatabase
+├── userDao, deckDao, wordDao, reviewDao, notificationSettingsDao
+├── authRepository, deckRepository, learningRepository
+├── analyticsRepository, notificationRepository
+├── reminderScheduler (WorkManager)
+├── loadHomeUseCase, loadProgressAnalyticsUseCase
+└── init → DatabaseSeeder.seedCatalogIfEmpty()
+```
+
+---
+
+## Ý nghĩa từng package
+
+### `ui/` — Giao diện
+
+| Thư mục | Ý nghĩa |
+|---------|---------|
+| `screens/` | Màn hình full — chỉ nhận **UiState** + callback, **không** gọi Repository/DAO |
+| `components/` | `DailyPlanCard`, `RemoteMediaImage`, bottom bar… |
+| `theme/` | Màu, typography, spacing MinLish |
+
+### `presentation/viewmodel/` — State màn hình
+
+Mỗi feature một ViewModel. Trong cùng file thường có:
+
+- **`XxxUiState`** — data class cho Compose
+- **`XxxEvent`** — user action (search, click, rate card)
+- **`XxxEffect`** — side effect một lần (navigate, snackbar)
+
+ViewModel gọi Repository/UseCase → nhận `AppResult<T>` → map sang UiState.
+
+### `domain/model/` — Model nghiệp vụ
+
+Object sạch, không `@Entity`. Ví dụ `VocabularyDeck.learningProgress` tính từ `learnedCount/wordCount` — logic này không nằm trong Entity.
+
+### `domain/usecase/` — Gộp nhiều repository
+
+Chỉ còn 2 use case. Phần lớn ViewModel gọi Repository trực tiếp.
+
+### `data/repository/` — Cổng dữ liệu duy nhất
+
+| Repository | Nhiệm vụ |
+|------------|----------|
+| `AuthRepository` | Login/register/logout, getMe, updateMe |
+| `DeckRepository` | CRUD deck & word, filter theo user |
+| `LearningRepository` | Daily plan, flashcard queue, submitReview (SM-2) |
+| `AnalyticsRepository` | Dashboard, activity 7 ngày, retention |
+| `NotificationRepository` | Reminder settings theo user |
+| `UserSession.kt` | `requireUserId()` — lấy user đang login |
+
+Repository: gọi DAO → mapper → `AppResult`, chứa business logic (SM-2, validate, kiểm tra quyền deck).
+
+### `data/local/entity/` — Bảng SQLite
+
+| Entity | Bảng | Ghi chú |
+|--------|------|---------|
+| `UserEntity` | `users` | Password plaintext (demo) — không đưa hết sang Domain |
+| `DeckEntity` | `decks` | `userId = null` → seed chung |
+| `VocabularyWordEntity` | `vocabulary_words` | FK → decks |
+| `ReviewStateEntity` | `review_states` | PK `(userId, wordId)` |
+| `ReviewLogEntity` | `review_logs` | Lịch sử ôn |
+| `NotificationSettingsEntity` | `notification_settings` | PK `userId` |
+
+Entity **không** leak lên UI.
+
+### `data/local/dao/` — SQL
+
+```kotlin
+@Query("SELECT * FROM decks WHERE userId IS NULL OR userId = :userId")
+suspend fun getDecks(userId: Long): List<DeckEntity>
+```
+
+Trả **Entity** hoặc **POJO query** (ví dụ `DailyReviewCount` từ `GROUP BY`). Không trả Domain — Repository sẽ map.
+
+### `data/local/database/`
+
+| File | Vai trò |
+|------|---------|
+| `MinLishDatabase.kt` | DB version 2, `fallbackToDestructiveMigration()` |
+| `StringListConverter.kt` | `List<String>` ↔ TEXT trong SQLite |
+| `DatabaseSeeder.kt` | Parse JSON asset → insert catalog |
+
+### `core/` — Hạ tầng
+
+`AppContainer`, `AppResult`/`AppError`, `SimpleAudioPlayer`, `WorkManagerReminderScheduler`.
+
+### `navigation/`
+
+`Routes.kt` — route constants. `AppNavGraph.kt` — wiring Screen ↔ ViewModel.
+
+---
+
+## Converter vs Mapper
+
+Hai thứ hay bị nhầm nhất.
+
+### TypeConverter — Room parse **kiểu một cột**
+
+SQLite chỉ lưu `INTEGER`, `REAL`, `TEXT`, `BLOB`. Kotlin có `List<String>` — Room dùng `StringListConverter`:
+
+**Ghi:** `["beginner", "daily"]` → TEXT `"beginner||daily"` (cột `tags`, `relatedWords`)
+
+**Đọc:** TEXT `"beginner||daily"` → `List<String>`
+
+Room tự gọi — Repository/Mapper nhận `List<String>` sẵn, không parse thủ công.
+
+### Mapper — Entity sang Domain Model
+
+File `data/local/mapper/LocalMappers.kt`:
+
+| Hàm | Từ → Đến |
+|-----|----------|
+| `UserEntity.toDomain()` | → `User` |
+| `DeckEntity.toDomain(wordCount, learnedCount)` | → `VocabularyDeck` (+ aggregate từ COUNT query) |
+| `VocabularyWordEntity.toDomain()` | → `VocabularyWord` |
+| `VocabularyWordEntity.toReviewCard(reviewState?)` | → `ReviewCard` (+ isNew, dueAt) |
+| `ReviewStateEntity.toSubmitReviewResult()` | → `SubmitReviewResult` |
+| `DailyReviewCount.toDomain()` | → `DailyActivity` |
+
+Mapper **không** parse JSON, **không** đụng SQLite — chỉ map field và bổ sung dữ liệu nghiệp vụ.
+
+### Không có DTO
+
+Kiến trúc cũ (đã xóa): `API JSON → DTO → Repository → Domain`
+
+Hiện tại: `SQLite row → Entity (Room) → Mapper → Domain → UiState`
+
+---
+
+## Database & tách dữ liệu theo user
+
+File `minlish.db`, Room version 2.
+
+| Dữ liệu | Phạm vi |
+|---------|---------|
+| 30 deck seed + 600 từ | Chung (`decks.userId = null`) |
+| Tiến độ học, review log, streak, accuracy | Riêng từng user (`userId`) |
+| Deck tự tạo | Riêng owner |
+| Notification settings | Riêng từng user |
+
+Repository luôn `userDao.requireUserId()` trước khi đọc/ghi dữ liệu cá nhân.
+
+**Kiểm tra:** Đăng ký user A, học vài từ → logout → đăng ký user B → tiến độ = 0, catalog deck vẫn giống A.
+
+---
+
+## Seeding dữ liệu
+
+### `seedCatalogIfEmpty` — catalog chung
+
+- Chạy khi chưa có deck seed
+- Đọc `assets/seed_vocabulary.json` (fallback 3 deck mẫu)
+- Insert deck `userId = null`, words kèm `asset://seed_media/...`
+- **Không** tạo `review_states`
+
+### `seedUserIfNeeded` — per user
+
+- Tạo `notification_settings` mặc định khi user mới login
+
+### Parse JSON (Seeder) — khác TypeConverter
+
+```
+seed_vocabulary.json → JSONObject → SeedDeck/SeedWord → Entity → DAO insert
+```
+
+Dùng `org.json` trong `DatabaseSeeder`, không qua Room Converter.
+
+### Tạo lại seed từ APKG
 
 ```bash
-cd backend
-python3 -m venv .venv
-.venv/bin/python -m pip install -e '.[dev]'
-cp .env.example .env
+python scripts/extract_apkg_to_seed_json.py
 ```
 
-Khởi động PostgreSQL, migration và seed Anki:
+Nguồn: `data/4000_Essential_English_Words_2_-_Vietnamese.apkg`
 
-```bash
-docker compose up -d
-.venv/bin/alembic upgrade head
-.venv/bin/python -m app.scripts.import_anki_apkg ../data/4000_Essential_English_Words_2_-_Vietnamese.apkg
+Sau khi đổi seed hoặc schema DB: **Clear Storage** hoặc gỡ cài app.
+
+---
+
+## Repositories & UseCase
+
+### SM-2 trong `LearningRepository.submitReview()`
+
+1. Đọc `ReviewStateEntity` (hoặc tạo mới cho `userId + wordId`)
+2. Tính `repetitions`, `intervalDays`, `easeFactor`, `nextDueAt` theo rating
+3. Upsert `review_states`, insert `review_logs`
+
+### UseCase còn lại
+
+- `LoadHomeUseCase` — user + dashboard + daily plan + activity → `HomeDashboard`
+- `LoadProgressAnalyticsUseCase` — stats cho màn Progress
+
+---
+
+## Luồng dữ liệu mẫu
+
+### 1. Home Dashboard (có UseCase)
+
+```
+HomeScreen ← HomeUiState ← HomeViewModel ← LoadHomeUseCase
+  ├─ authRepository.getMe()
+  │    userDao → UserEntity → toDomain() → User
+  ├─ analyticsRepository.getDashboard()
+  │    reviewDao COUNT queries → ProgressStats (build trực tiếp)
+  ├─ learningRepository.getDailyPlan()
+  │    reviewDao + wordDao → DailyLearningPlan
+  └─ analyticsRepository.getActivity()
+       reviewDao → DailyReviewCount → toDomain() → DailyActivity
 ```
 
-Chạy FastAPI:
+ViewModel **không** thấy Entity — chỉ Domain Model và UiState.
 
-```bash
-.venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+### 2. Danh sách Deck (ViewModel → Repository trực tiếp)
+
+```
+DeckListViewModel → deckRepository.getDecks()
+  → deckDao.getDecks(userId) → List<DeckEntity>
+  → mỗi deck: countWords + countLearnedWords + toDomain()
+  → AppResult.Success(List<VocabularyDeck>)
+  → DeckListUiState.decks
 ```
 
-Kiểm tra nhanh:
+TypeConverter chạy ngầm khi Room đọc cột `tags`.
 
-```txt
-http://localhost:8000/docs
-http://localhost:8000/api/v1/health
+### 3. Flashcard — đọc queue
+
+```
+LearningRepository.getReviewCards()
+  → reviewDao.getNewCards(userId) → List<VocabularyWordEntity>
+  → mỗi word: getReviewState(userId, wordId) + toReviewCard()
+  → ReviewCard (isNew, dueAt từ review state)
 ```
 
-## Chạy Android
+`toReviewCard()` ghép **2 nguồn** (word + review state).
 
-Mở project bằng Android Studio, chọn emulator, rồi Run cấu hình `app`.
+### 4. Flashcard — ghi rating (Good/Easy/…)
 
-Build/test bằng terminal:
-
-```bash
-./gradlew :app:assembleDebug
-./gradlew :app:testDebugUnitTest
+```
+LearningRepository.submitReview()
+  → SM-2 tính ReviewStateEntity mới
+  → reviewDao.upsertReviewState + insertReviewLog
+  → toSubmitReviewResult() → SubmitReviewResult
 ```
 
-## Luồng Demo Đề Xuất
+Chiều ghi: Repository tạo Entity trực tiếp (không mapper Domain→Entity cho review).
 
-1. Register hoặc Login.
-2. Home Dashboard hiển thị daily plan, streak, accuracy.
-3. Decks hiển thị 30 seed decks từ Anki.
-4. Mở `Unit 01`, kiểm tra có từ `anxious`.
-5. Tạo deck cá nhân.
-6. Add/Edit/Delete word trong deck cá nhân.
-7. Vào Learn, học 2-3 flashcards.
-8. Xem Review Results.
-9. Vào Progress để xem analytics cập nhật.
-10. Vào Profile, sửa settings/reminder, rồi Logout.
+### 5. Tạo deck có tags
 
-## Test
-
-Android:
-
-```bash
-./gradlew :app:assembleDebug
-./gradlew :app:testDebugUnitTest
+```
+DeckEntity(tags = ["ielts", "advanced"])
+  → Room gọi StringListConverter.fromList()
+  → SQLite lưu TEXT "ielts||advanced"
 ```
 
-Backend:
+### Bảng tóm tắt: Ai parse cái gì?
 
-```bash
-cd backend
-.venv/bin/python -m pytest
+| Đoạn dữ liệu | Ai xử lý |
+|--------------|----------|
+| `seed_vocabulary.json` | `DatabaseSeeder` (JSONObject) |
+| Cột `tags`, `relatedWords` | `StringListConverter` (Room) |
+| SQLite row → object | Room runtime → Entity |
+| Entity + COUNT | `LocalMappers.toDomain()` |
+| Word + ReviewState | `toReviewCard()` |
+| GROUP BY reviewDate | `DailyReviewCount` → `toDomain()` |
+| Domain | ViewModel → UiState |
+
+### `AppResult` — xử lý lỗi
+
+```kotlin
+when (val result = deckRepository.getDecks()) {
+    is AppResult.Success -> uiState.decks = result.data
+    is AppResult.Failure -> uiState.errorMessage = result.error.message
+}
 ```
 
-Manual QA:
+UI không parse exception — chỉ đọc `errorMessage` từ UiState.
 
-- Dùng checklist trong `QA_CHECKLIST.md`.
+### Đọc code theo thứ tự
 
-## Troubleshooting
+1. `ui/screens/.../XxxScreen.kt`
+2. `presentation/viewmodel/.../XxxViewModel.kt`
+3. `data/repository/...Repository.kt`
+4. `data/local/dao/...Dao.kt`
+5. `data/local/entity/...Entity.kt`
+6. `data/local/mapper/LocalMappers.kt`
 
-### App báo `Không thể kết nối máy chủ`
+---
 
-- Đảm bảo FastAPI đang chạy ở port `8000`.
-- Android emulator phải dùng `10.0.2.2`, không dùng `localhost`.
-- Kiểm tra `NetworkConfig.API_BASE_URL` đang là `http://10.0.2.2:8000/api/v1/`.
+## Navigation & Auth
 
-### Port 8000 bị bận
+### Màn hình
 
-Tìm tiến trình đang dùng port 8000 rồi dừng uvicorn cũ trước khi chạy lại backend.
+| Route | Screen | ViewModel |
+|-------|--------|-----------|
+| `splash` | SplashScreen | SplashViewModel |
+| `login` / `register` / `setup` | Auth flow | Login/Register/Setup |
+| `main/home` | HomeScreen | HomeViewModel |
+| `main/decks` | DeckListScreen | DeckListViewModel |
+| `decks/{deckId}` | DeckDetailScreen | DeckDetailViewModel |
+| `main/learn` | FlashcardLearningScreen | FlashcardViewModel |
+| `main/progress` | ProgressAnalyticsScreen | ProgressViewModel |
+| `main/profile` | ProfileSettingsScreen | ProfileViewModel |
 
-### Decks không có Unit 01 đến Unit 30
+Bottom nav: Home · Decks · Learn · Progress · Profile
 
-Chạy lại seed:
+### Auth (local)
 
-```bash
-cd backend
-.venv/bin/python -m app.scripts.import_anki_apkg ../data/4000_Essential_English_Words_2_-_Vietnamese.apkg
+```
+Splash → getLoggedInUser()
+  ├─ có session → Home
+  └─ không → Login/Register → Setup → Home
 ```
 
-Script seed được thiết kế để chạy lại không tạo duplicate.
+Email `trim().lowercase()`. Password plaintext (demo). Một user `isLoggedIn = true` tại một thời điểm.
 
-### Login được nhưng Home lỗi
+### Media & Notification
 
-- Kiểm tra backend đã chạy migration mới nhất.
-- Kiểm tra các API analytics/learning:
-  - `/api/v1/learning/daily-plan`
-  - `/api/v1/analytics/dashboard`
-  - `/api/v1/analytics/activity`
+- Ảnh/audio: `asset://seed_media/...` qua `RemoteMediaImage`, `SimpleAudioPlayer`
+- Nhắc học: `NotificationRepository` + `WorkManagerReminderScheduler` (không FCM)
 
-### Notification không hiện
+### Sơ đồ submit review
 
-- Android 13+ cần cấp quyền notification.
-- Phase v1 dùng local WorkManager reminder, không dùng FCM.
+```mermaid
+sequenceDiagram
+    participant UI as FlashcardScreen
+    participant VM as FlashcardViewModel
+    participant LR as LearningRepository
+    participant RD as ReviewDao
 
-## V1 Limitations
+    UI->>VM: rate card (Good/Easy/...)
+    VM->>LR: submitReview(wordId, rating)
+    LR->>RD: getReviewState(userId, wordId)
+    LR->>LR: tính SM-2 next state
+    LR->>RD: upsertReviewState + insertReviewLog
+    LR-->>VM: SubmitReviewResult
+    VM-->>UI: chuyển thẻ tiếp
+```
 
-- Google login cần cấu hình Android OAuth client ID.
-- Forgot Password chưa có endpoint.
-- Practice Quiz và import/export CSV/XLSX là phần mở rộng nếu còn thời gian.
-- Audio playback cho media Anki có thể bổ sung sau nếu cần demo sâu hơn.
+---
+
+## Giới hạn v1 & Troubleshooting
+
+**Chưa có:** Import/export Excel, Google login, forgot password, backend/sync, practice quiz.
+
+| Vấn đề | Cách xử lý |
+|--------|------------|
+| Không thấy 30 unit seed | Clear Storage / reinstall app |
+| Ảnh/audio không hiện | DB cũ hoặc thiếu `seed_media/` — chạy lại extract script + clear storage |
+| Schema lỗi sau update | DB version đổi → destructive migration tự drop DB |
+
+### Luồng demo
+
+1. Register user A → học flashcard → xem Progress
+2. Logout → Register user B → tiến độ = 0
+3. Tạo deck cá nhân, thêm/sửa/xóa từ
+4. Profile: đổi daily new words, bật reminder

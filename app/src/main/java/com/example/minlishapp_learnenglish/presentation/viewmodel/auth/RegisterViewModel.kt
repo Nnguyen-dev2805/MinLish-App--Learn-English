@@ -3,7 +3,7 @@ package com.example.minlishapp_learnenglish.presentation.viewmodel.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.minlishapp_learnenglish.core.result.AppResult
-import com.example.minlishapp_learnenglish.domain.usecase.auth.RegisterUseCase
+import com.example.minlishapp_learnenglish.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -36,13 +36,13 @@ sealed interface RegisterEvent {
 }
 
 sealed interface RegisterEffect {
-    data class NavigateVerifyEmail(val email: String, val userName: String) : RegisterEffect
+    data object NavigateHome : RegisterEffect
     data object NavigateLogin : RegisterEffect
     data class ShowSnackbar(val message: String) : RegisterEffect
 }
 
 class RegisterViewModel(
-    private val registerUseCase: RegisterUseCase
+    private val authRepository: AuthRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
@@ -115,10 +115,10 @@ class RegisterViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, apiError = null) }
-            when (val result = registerUseCase(name, email, password)) {
+            when (val result = authRepository.register(name, email, password)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    _effects.emit(RegisterEffect.NavigateVerifyEmail(email, name))
+                    _effects.emit(RegisterEffect.NavigateHome)
                 }
                 is AppResult.Failure -> {
                     _uiState.update { it.copy(isLoading = false, apiError = result.error.message) }

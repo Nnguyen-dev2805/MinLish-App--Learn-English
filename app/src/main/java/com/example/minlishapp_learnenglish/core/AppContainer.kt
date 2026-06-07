@@ -3,14 +3,8 @@ package com.example.minlishapp_learnenglish.core
 import android.content.Context
 import com.example.minlishapp_learnenglish.core.notification.ReminderScheduler
 import com.example.minlishapp_learnenglish.core.notification.WorkManagerReminderScheduler
-import com.example.minlishapp_learnenglish.core.network.RetrofitFactory
-import com.example.minlishapp_learnenglish.core.storage.EncryptedTokenStorage
-import com.example.minlishapp_learnenglish.core.storage.TokenStorage
-import com.example.minlishapp_learnenglish.data.remote.api.AnalyticsApi
-import com.example.minlishapp_learnenglish.data.remote.api.AuthApi
-import com.example.minlishapp_learnenglish.data.remote.api.DeckApi
-import com.example.minlishapp_learnenglish.data.remote.api.LearningApi
-import com.example.minlishapp_learnenglish.data.remote.api.NotificationApi
+import com.example.minlishapp_learnenglish.data.local.database.DatabaseSeeder
+import com.example.minlishapp_learnenglish.data.local.database.MinLishDatabase
 import com.example.minlishapp_learnenglish.data.repository.AnalyticsRepository
 import com.example.minlishapp_learnenglish.data.repository.AuthRepository
 import com.example.minlishapp_learnenglish.data.repository.DefaultAnalyticsRepository
@@ -21,122 +15,76 @@ import com.example.minlishapp_learnenglish.data.repository.DeckRepository
 import com.example.minlishapp_learnenglish.data.repository.LearningRepository
 import com.example.minlishapp_learnenglish.data.repository.DefaultNotificationRepository
 import com.example.minlishapp_learnenglish.data.repository.NotificationRepository
-import com.example.minlishapp_learnenglish.domain.usecase.auth.CheckSessionUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.ForgotPasswordUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.LoginUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.RegisterUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.ResendVerificationOtpUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.ResetPasswordUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.auth.VerifyEmailUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateDeckUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.CreateWordUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.DeleteWordUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.ExportDeckItemsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckDetailUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDeckItemsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.GetDecksUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.ImportDeckItemsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.decks.UpdateWordUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.home.LoadHomeUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.learning.GetReviewCardsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.learning.SubmitReviewUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.notification.GetNotificationSettingsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.notification.UpdateNotificationSettingsUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.profile.GetProfileUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.profile.LogoutUseCase
-import com.example.minlishapp_learnenglish.domain.usecase.profile.UpdateProfileUseCase
 import com.example.minlishapp_learnenglish.domain.usecase.progress.LoadProgressAnalyticsUseCase
-import com.squareup.moshi.Moshi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class AppContainer(context: Context) {
+    /*
+    Khi MainActivity khởi tạo AppContainer(applicationContext), 
+    dòng appContext = context.applicationContext lấy Application Context 
+    context gắn với toàn app, sống suốt vòng đời ứng dụng, không bị hủy khi đóng một màn hình.
+    appContext được truyền xuống Room database và WorkManagerReminderScheduler để lưu dữ liệu local
+    và lên lịch nhắc học.
+    Dùng Application Context thay vì Activity Context tránh rò rỉ bộ nhớ và đảm bảo các 
+    dependency này dùng được xuyên suốt app, không chỉ trong một Activity.
+    */
     private val appContext = context.applicationContext
 
-    val tokenStorage: TokenStorage = EncryptedTokenStorage(appContext)
-
-    val moshi: Moshi = RetrofitFactory.createMoshi()
-
-    private val publicAuthApi: AuthApi = RetrofitFactory
-        .createPublicRetrofit(moshi = moshi)
-        .create(AuthApi::class.java)
-
-    private val authenticatedRetrofit = RetrofitFactory.createAuthenticatedRetrofit(
-            tokenStorage = tokenStorage,
-            refreshApi = publicAuthApi,
-            moshi = moshi
-        )
-
-    // hãy đọc interface rồi nhìn các annotation rồi tạo ra 1 object thật có thể gọi API
-    // kết quả trả về là 1 object kiểu AuthApi
-    // những API này sử dụng authenticate làm bộ máy gọi HTTP
-    // tạo ra 1 implemetation thật của API, Implementation này sử dụng cấu hình của authen để gửi request
-    // Ví dụ: deckAPI.getDecks() thì request sẽ đi qua deckapi method -> retroflit -> moshi -> OkHttpClient -> AuthInterceptor -> TokenAuthenticator nếu bị 401 -> FastAPI backend
-    private val authenticatedAuthApi: AuthApi = authenticatedRetrofit
-        .create(AuthApi::class.java)
-    private val learningApi: LearningApi = authenticatedRetrofit
-        .create(LearningApi::class.java)
-    private val analyticsApi: AnalyticsApi = authenticatedRetrofit
-        .create(AnalyticsApi::class.java)
-    private val deckApi: DeckApi = authenticatedRetrofit
-        .create(DeckApi::class.java)
-    private val notificationApi: NotificationApi = authenticatedRetrofit
-        .create(NotificationApi::class.java)
+    private val database: MinLishDatabase = MinLishDatabase.getDatabase(appContext)
+    private val databaseScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val userDao = database.userDao()
+    private val deckDao = database.deckDao()
+    private val wordDao = database.wordDao()
+    private val reviewDao = database.reviewDao()
+    private val notificationSettingsDao = database.notificationSettingsDao()
 
     val authRepository: AuthRepository = DefaultAuthRepository(
-        authApi = authenticatedAuthApi,
-        tokenStorage = tokenStorage,
-        moshi = moshi
+        userDao = userDao
     )
     val learningRepository: LearningRepository = DefaultLearningRepository(
-        learningApi = learningApi,
-        moshi = moshi
+        context = appContext,
+        database = database,
+        wordDao = wordDao,
+        reviewDao = reviewDao,
+        userDao = userDao
     )
     val analyticsRepository: AnalyticsRepository = DefaultAnalyticsRepository(
-        analyticsApi = analyticsApi,
-        moshi = moshi
+        context = appContext,
+        database = database,
+        reviewDao = reviewDao,
+        wordDao = wordDao,
+        userDao = userDao
     )
     val deckRepository: DeckRepository = DefaultDeckRepository(
-        deckApi = deckApi,
-        moshi = moshi
+        context = appContext,
+        database = database,
+        deckDao = deckDao,
+        wordDao = wordDao,
+        reviewDao = reviewDao,
+        userDao = userDao
     )
     val notificationRepository: NotificationRepository = DefaultNotificationRepository(
-        notificationApi = notificationApi,
-        moshi = moshi
+        database = database,
+        notificationSettingsDao = notificationSettingsDao,
+        userDao = userDao
     )
     val reminderScheduler: ReminderScheduler = WorkManagerReminderScheduler(appContext)
 
-    val checkSessionUseCase = CheckSessionUseCase(
-        tokenStorage = tokenStorage
-    )
-    val loginUseCase = LoginUseCase(authRepository)
-    val googleLoginUseCase = com.example.minlishapp_learnenglish.domain.usecase.auth.GoogleLoginUseCase(authRepository)
-    val registerUseCase = RegisterUseCase(authRepository)
-    val verifyEmailUseCase = VerifyEmailUseCase(authRepository)
-    val resendVerificationOtpUseCase = ResendVerificationOtpUseCase(authRepository)
-    val forgotPasswordUseCase = ForgotPasswordUseCase(authRepository)
-    val resetPasswordUseCase = ResetPasswordUseCase(authRepository)
     val loadHomeUseCase = LoadHomeUseCase(
         authRepository = authRepository,
         analyticsRepository = analyticsRepository,
         learningRepository = learningRepository
     )
-    val getDecksUseCase = GetDecksUseCase(deckRepository)
-    val getDeckDetailUseCase = GetDeckDetailUseCase(deckRepository)
-    val getDeckItemsUseCase = GetDeckItemsUseCase(deckRepository)
-    val importDeckItemsUseCase = ImportDeckItemsUseCase(deckRepository)
-    val exportDeckItemsUseCase = ExportDeckItemsUseCase(deckRepository)
-    val createDeckUseCase = CreateDeckUseCase(deckRepository)
-    val createWordUseCase = CreateWordUseCase(deckRepository)
-    val updateWordUseCase = UpdateWordUseCase(deckRepository)
-    val deleteWordUseCase = DeleteWordUseCase(deckRepository)
-    val getReviewCardsUseCase = GetReviewCardsUseCase(learningRepository)
-    val submitReviewUseCase = SubmitReviewUseCase(learningRepository)
     val loadProgressAnalyticsUseCase = LoadProgressAnalyticsUseCase(analyticsRepository)
-    val getProfileUseCase = GetProfileUseCase(authRepository)
-    val updateProfileUseCase = UpdateProfileUseCase(authRepository)
-    val logoutUseCase = LogoutUseCase(
-        authRepository = authRepository,
-        tokenStorage = tokenStorage
-    )
-    val getNotificationSettingsUseCase = GetNotificationSettingsUseCase(notificationRepository)
-    val updateNotificationSettingsUseCase = UpdateNotificationSettingsUseCase(notificationRepository)
+
+    init {
+        // Seed dữ liệu mẫu ngay khi app khởi động để màn hình Decks/Home/Learn có dữ liệu local.
+        databaseScope.launch {
+            DatabaseSeeder.seedCatalogIfEmpty(appContext, database)
+        }
+    }
 }

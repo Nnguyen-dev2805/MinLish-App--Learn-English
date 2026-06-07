@@ -21,12 +21,16 @@ import com.example.minlishapp_learnenglish.ui.components.MinLishBottomBar
 
 @Composable
 fun MinLishApp(appContainer: AppContainer) {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    // tạo ra một bộ điều khiển điều hướng, object dùng để chuyển màn hình, quản lý back stack, biết đang ở route nào.
+    val navController = rememberNavController() 
+    
+    // Giúp compose theo dõi màn hình đang hiển thị trên back stack và tự recompose khi chúng ta navigate sang màn khác
+    // Chuyển entry đó thành State để Compose tự nhật UI khi bạn chuyển màn (ẩn/hiện bottom bar theo route)
+    val backStackEntry by navController.currentBackStackEntryAsState() 
+    val currentRoute = backStackEntry?.destination?.route 
+    
     val bottomBarRoute = if (currentRoute == Routes.LearnDeck) Routes.Learn else currentRoute
     val showBottomBar = mainDestinations.any { it.route == bottomBarRoute }
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background

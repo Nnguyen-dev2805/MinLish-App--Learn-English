@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.example.minlishapp_learnenglish.core.audio.SimpleAudioPlayer
-import com.example.minlishapp_learnenglish.core.network.BackendUrlResolver
 import com.example.minlishapp_learnenglish.domain.model.ReviewCard
 import com.example.minlishapp_learnenglish.domain.model.ReviewRating
 import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardUiState
@@ -136,7 +136,8 @@ private fun FlashcardContent(
     modifier: Modifier = Modifier
 ) {
     val card = uiState.currentCard ?: return
-    val audioPlayer = remember { SimpleAudioPlayer() }
+    val context = LocalContext.current
+    val audioPlayer = remember(context) { SimpleAudioPlayer(context) }
 
     DisposableEffect(Unit) {
         onDispose { audioPlayer.release() }
@@ -617,13 +618,22 @@ private fun playWordAudio(
     audioPlayer: SimpleAudioPlayer,
     onAudioError: (String) -> Unit
 ) {
-    val resolvedUrl = BackendUrlResolver.resolve(card.wordAudioUrl)
+    val resolvedUrl = card.wordAudioUrl.asPlayableMediaUrlOrNull()
     if (resolvedUrl == null) {
         onAudioError("Unable to play audio.")
         return
     }
     audioPlayer.play(resolvedUrl) {
         onAudioError("Unable to play audio.")
+    }
+}
+
+private fun String?.asPlayableMediaUrlOrNull(): String? {
+    val trimmed = this?.trim().orEmpty()
+    return trimmed.takeIf {
+        it.startsWith("asset://", ignoreCase = true) ||
+        it.startsWith("http://", ignoreCase = true) ||
+            it.startsWith("https://", ignoreCase = true)
     }
 }
 

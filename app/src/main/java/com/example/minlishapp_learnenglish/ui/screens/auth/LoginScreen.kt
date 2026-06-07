@@ -21,25 +21,19 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.core.auth.GoogleAuthManager
 import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginUiState
-import com.example.minlishapp_learnenglish.ui.components.AuthDividerLabel
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton
 import com.example.minlishapp_learnenglish.ui.components.MinLishCard
 import com.example.minlishapp_learnenglish.ui.components.MinLishLogo
 import com.example.minlishapp_learnenglish.ui.components.MinLishPasswordField
 import com.example.minlishapp_learnenglish.ui.components.MinLishTextField
-import com.example.minlishapp_learnenglish.ui.components.SocialLoginButton
 import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -49,14 +43,8 @@ fun LoginScreen(
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
     onSignUp: () -> Unit,
-    onForgotPassword: () -> Unit,
-    onGoogleLogin: (String) -> Unit,
-    onError: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
@@ -119,18 +107,6 @@ fun LoginScreen(
                         enabled = !uiState.isLoading
                     )
 
-                    TextButton(
-                        onClick = onForgotPassword,
-                        enabled = !uiState.isLoading,
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text(
-                            text = "Forgot Password?",
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // Log In Button
@@ -139,28 +115,6 @@ fun LoginScreen(
                         onClick = onLogin,
                         loading = uiState.isLoading,
                         modifier = Modifier.fillMaxWidth()
-                    )
-
-                    AuthDividerLabel(text = "OR", modifier = Modifier.padding(vertical = 8.dp))
-                    
-                    // Social login with Google
-                    SocialLoginButton(
-                        text = "Continue with Google",
-                        onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    val authManager = GoogleAuthManager(context)
-                                    val idToken = authManager.getGoogleIdToken()
-                                    if (idToken != null) {
-                                        onGoogleLogin(idToken)
-                                    }
-                                } catch (e: Exception) {
-                                    onError(e.message ?: "Google sign-in failed")
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isLoading
                     )
                     
                     Spacer(modifier = Modifier.height(8.dp))

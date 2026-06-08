@@ -57,11 +57,12 @@ class DefaultAnalyticsRepository(
         return localCall {
             val userId = userDao.requireUserId()
             ensureSeedData(userId)
-            val reviewCountsByDate = reviewDao.getDailyReviewCounts(userId, limit = ACTIVITY_DAYS)
-                .associateBy { it.reviewDate }
+            val reviewCountsByDate = reviewDao
+                .getDailyReviewCounts(userId, limit = ACTIVITY_DAYS)
+                .associateBy(DailyReviewCount::reviewDate)
 
-            recentDates(ACTIVITY_DAYS).map { date ->
-                reviewCountsByDate[date]?.toDailyActivity()
+            recentActivityDates().map { date ->
+                reviewCountsByDate[date]?.let(::toDailyActivity)
                     ?: DailyActivity(
                         date = date,
                         reviewCount = 0,
@@ -102,21 +103,21 @@ class DefaultAnalyticsRepository(
         return streak
     }
 
-    private fun recentDates(days: Int): List<String> {
+    private fun recentActivityDates(): List<String> {
         val calendar = Calendar.getInstance()
-        calendar.add(Calendar.DAY_OF_YEAR, -(days - 1))
-        return List(days) {
+        calendar.add(Calendar.DAY_OF_YEAR, -(ACTIVITY_DAYS - 1))
+        return List(ACTIVITY_DAYS) {
             DATE_FORMAT.format(calendar.time).also {
                 calendar.add(Calendar.DAY_OF_YEAR, 1)
             }
         }
     }
 
-    private fun DailyReviewCount.toDailyActivity(): DailyActivity {
+    private fun toDailyActivity(count: DailyReviewCount): DailyActivity {
         return DailyActivity(
-            date = reviewDate,
-            reviewCount = reviewCount,
-            correctCount = correctCount
+            date = count.reviewDate,
+            reviewCount = count.reviewCount,
+            correctCount = count.correctCount
         )
     }
 
@@ -143,9 +144,13 @@ class DefaultAnalyticsRepository(
         } catch (error: CancellationException) {
             throw error
         } catch (error: LocalAuthRequiredException) {
-            AppResult.Failure(AppError.Validation(message = error.message ?: "Please log in first."))
+            AppResult.Failure(
+                AppError.Validation(message = error.message ?: "Please log in first.")
+            )
         } catch (error: IllegalArgumentException) {
-            AppResult.Failure(AppError.Validation(message = error.message ?: "Invalid analytics data."))
+            AppResult.Failure(
+                AppError.Validation(message = error.message ?: "Invalid analytics data.")
+            )
         } catch (error: Exception) {
             AppResult.Failure(
                 AppError.Unknown(

@@ -8,12 +8,6 @@ import com.example.minlishapp_learnenglish.data.local.entity.ReviewLogEntity
 import com.example.minlishapp_learnenglish.data.local.entity.ReviewStateEntity
 import com.example.minlishapp_learnenglish.data.local.entity.VocabularyWordEntity
 
-data class DailyReviewCount(
-    val reviewDate: String,
-    val reviewCount: Int,
-    val correctCount: Int
-)
-
 @Dao
 interface ReviewDao {
     @Query("SELECT * FROM review_states WHERE userId = :userId AND wordId = :wordId LIMIT 1")

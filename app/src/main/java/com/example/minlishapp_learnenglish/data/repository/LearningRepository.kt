@@ -45,12 +45,14 @@ class DefaultLearningRepository(
         return localCall {
             val userId = userDao.requireUserId()
             ensureSeedData(userId)
-            val dailyGoal = userDao.getLoggedInUser()?.dailyNewWords ?: DEFAULT_DAILY_GOAL
-            val today = today()
+            val dailyGoal = (userDao.getLoggedInUser()?.dailyNewWords ?: DEFAULT_DAILY_GOAL)
+                .coerceAtLeast(0)
+            val availableNewCards = reviewDao.countNewCards(userId)
+            val now = nowDateTime()
             DailyLearningPlan(
                 dailyGoal = dailyGoal,
-                newCards = reviewDao.countNewCards(userId),
-                dueReviews = reviewDao.countDueCards(userId, today),
+                newCards = minOf(dailyGoal, availableNewCards),
+                dueReviews = reviewDao.countDueCards(userId, now),
                 totalAvailable = wordDao.countAllWords()
             )
         }
@@ -66,12 +68,12 @@ class DefaultLearningRepository(
             val limit = userDao.getLoggedInUser()?.dailyNewWords ?: DEFAULT_DAILY_GOAL
             val cards = when (mode) {
                 "due" -> if (deckId == null) {
-                    reviewDao.getDueCards(userId = userId, today = today(), limit = REVIEW_LIMIT)
+                    reviewDao.getDueCards(userId = userId, today = nowDateTime(), limit = REVIEW_LIMIT)
                 } else {
                     reviewDao.getDueCardsByDeck(
                         userId = userId,
                         deckId = deckId,
-                        today = today(),
+                        today = nowDateTime(),
                         limit = REVIEW_LIMIT
                     )
                 }
@@ -109,7 +111,7 @@ class DefaultLearningRepository(
             val nextState = currentState.nextState(
                 rating = rating,
                 reviewedAt = nowDateTime(),
-                nextDueAt = nextDueDate(currentState.intervalDays, rating),
+                nextDueAt = nextDueDate(rating),
                 isCorrect = isCorrect
             )
 
@@ -145,10 +147,10 @@ class DefaultLearningRepository(
             else -> repetitions + 1
         }
         val nextIntervalDays = when (rating) {
-            ReviewRating.Again -> 1
-            ReviewRating.Hard -> (intervalDays + 1).coerceAtLeast(1)
-            ReviewRating.Good -> (intervalDays * 2).coerceAtLeast(2)
-            ReviewRating.Easy -> (intervalDays * 3).coerceAtLeast(4)
+            ReviewRating.Again -> 0
+            ReviewRating.Hard -> 1
+            ReviewRating.Good -> 3
+            ReviewRating.Easy -> 7
         }
         val nextEaseFactor = when (rating) {
             ReviewRating.Again -> (easeFactor - 0.2).coerceAtLeast(1.3)
@@ -167,24 +169,29 @@ class DefaultLearningRepository(
         )
     }
 
-    private fun nextDueDate(currentIntervalDays: Int, rating: ReviewRating): String {
-        val intervalDays = when (rating) {
-            ReviewRating.Again -> 1
-            ReviewRating.Hard -> (currentIntervalDays + 1).coerceAtLeast(1)
-            ReviewRating.Good -> (currentIntervalDays * 2).coerceAtLeast(2)
-            ReviewRating.Easy -> (currentIntervalDays * 3).coerceAtLeast(4)
+    private fun nextDueDate(rating: ReviewRating): String {
+        return when (rating) {
+            ReviewRating.Again -> dateTimeAfterMinutes(1)
+            ReviewRating.Hard -> dateTimeAfterDays(1)
+            ReviewRating.Good -> dateTimeAfterDays(3)
+            ReviewRating.Easy -> dateTimeAfterDays(7)
         }
-        return dateAfterDays(intervalDays)
     }
 
     private fun today(): String = requireNotNull(DATE_FORMAT.get()).format(Calendar.getInstance().time)
 
     private fun nowDateTime(): String = requireNotNull(DATE_TIME_FORMAT.get()).format(Calendar.getInstance().time)
 
-    private fun dateAfterDays(days: Int): String {
+    private fun dateTimeAfterDays(days: Int): String {
         val calendar = Calendar.getInstance()
         calendar.add(Calendar.DAY_OF_YEAR, days)
-        return requireNotNull(DATE_FORMAT.get()).format(calendar.time)
+        return requireNotNull(DATE_TIME_FORMAT.get()).format(calendar.time)
+    }
+
+    private fun dateTimeAfterMinutes(minutes: Int): String {
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.MINUTE, minutes)
+        return requireNotNull(DATE_TIME_FORMAT.get()).format(calendar.time)
     }
 
     private suspend fun ensureSeedData(userId: Long) {

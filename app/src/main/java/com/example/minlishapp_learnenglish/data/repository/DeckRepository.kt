@@ -15,6 +15,7 @@ import com.example.minlishapp_learnenglish.data.local.entity.VocabularyWordEntit
 import com.example.minlishapp_learnenglish.data.local.mapper.toDomain
 import com.example.minlishapp_learnenglish.domain.model.VocabularyDeck
 import com.example.minlishapp_learnenglish.domain.model.VocabularyWord
+import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.CancellationException
 
 interface DeckRepository {
@@ -225,21 +226,44 @@ class DefaultDeckRepository(
         fileName: String,
         fileBytes: ByteArray
     ): AppResult<Int> {
-        return AppResult.Failure(
-            AppError.Validation(
-                message = "Excel import is not available in the local study version.",
-                code = "FEATURE_NOT_AVAILABLE"
-            )
-        )
+        return localCall {
+            val userId = userDao.requireUserId()
+            ensureSeedData(userId)
+            requireEditableDeck(deckId, userId)
+
+            val rows = parseCsvWords(fileBytes)
+            var importedCount = 0
+            rows.forEach { row ->
+                val wordId = wordDao.insertWord(
+                    VocabularyWordEntity(
+                        deckId = deckId,
+                        word = row.word,
+                        pronunciation = cleanOptionalText(row.pronunciation),
+                        meaning = row.meaning,
+                        description = cleanOptionalText(row.description),
+                        example = cleanOptionalText(row.example),
+                        collocation = null,
+                        relatedWords = emptyList(),
+                        note = null
+                    )
+                )
+                reviewDao.upsertReviewState(ReviewStateEntity(userId = userId, wordId = wordId))
+                importedCount += 1
+            }
+
+            importedCount
+        }
     }
 
     override suspend fun exportDeckItems(deckId: Long): AppResult<ByteArray> {
-        return AppResult.Failure(
-            AppError.Validation(
-                message = "Excel export is not available in the local study version.",
-                code = "FEATURE_NOT_AVAILABLE"
-            )
-        )
+        return localCall {
+            val userId = userDao.requireUserId()
+            ensureSeedData(userId)
+            requireEditableDeck(deckId, userId)
+
+            val words = wordDao.getWordsByDeck(deckId)
+            buildCsv(words).toByteArray(StandardCharsets.UTF_8)
+        }
     }
 
     private fun cleanOptionalText(value: String?): String? {
@@ -258,6 +282,117 @@ class DefaultDeckRepository(
             throw LocalNotFoundException("Deck not found.")
         }
         return deck
+    }
+
+    private suspend fun requireEditableDeck(deckId: Long, userId: Long): DeckEntity {
+        val deck = requireAccessibleDeck(deckId, userId)
+        require(deck.userId == userId && !deck.isReadOnly && !deck.isSeed) {
+            "Only personal decks can import or export CSV files."
+        }
+        return deck
+    }
+
+    private fun parseCsvWords(fileBytes: ByteArray): List<CsvWordRow> {
+        val csvText = String(fileBytes, StandardCharsets.UTF_8)
+            .removePrefix("\uFEFF")
+        val rows = parseCsv(csvText)
+            .filter { row -> row.any { it.isNotBlank() } }
+
+        require(rows.isNotEmpty()) { "CSV file is empty." }
+
+        val headers = rows.first().map { it.trim().lowercase() }
+        val wordIndex = headers.indexOf("word")
+        val meaningIndex = headers.indexOf("meaning")
+        require(wordIndex != -1 && meaningIndex != -1) {
+            "CSV header must contain word and meaning columns."
+        }
+
+        val pronunciationIndex = headers.indexOf("pronunciation")
+        val descriptionIndex = headers.indexOf("description")
+        val exampleIndex = headers.indexOf("example")
+
+        return rows.drop(1).mapNotNull { row ->
+            val word = row.getOrNull(wordIndex)?.trim().orEmpty()
+            val meaning = row.getOrNull(meaningIndex)?.trim().orEmpty()
+            if (word.isBlank() || meaning.isBlank()) {
+                null
+            } else {
+                CsvWordRow(
+                    word = word,
+                    pronunciation = row.getOrNull(pronunciationIndex)?.trim().orEmpty(),
+                    meaning = meaning,
+                    description = row.getOrNull(descriptionIndex)?.trim().orEmpty(),
+                    example = row.getOrNull(exampleIndex)?.trim().orEmpty()
+                )
+            }
+        }
+    }
+
+    private fun parseCsv(text: String): List<List<String>> {
+        val rows = mutableListOf<MutableList<String>>()
+        var row = mutableListOf<String>()
+        val cell = StringBuilder()
+        var inQuotes = false
+        var index = 0
+
+        while (index < text.length) {
+            val char = text[index]
+            when {
+                char == '"' && inQuotes && index + 1 < text.length && text[index + 1] == '"' -> {
+                    cell.append('"')
+                    index += 1
+                }
+                char == '"' -> {
+                    inQuotes = !inQuotes
+                }
+                char == ',' && !inQuotes -> {
+                    row.add(cell.toString())
+                    cell.clear()
+                }
+                (char == '\n' || char == '\r') && !inQuotes -> {
+                    row.add(cell.toString())
+                    cell.clear()
+                    rows.add(row)
+                    row = mutableListOf()
+                    if (char == '\r' && index + 1 < text.length && text[index + 1] == '\n') {
+                        index += 1
+                    }
+                }
+                else -> {
+                    cell.append(char)
+                }
+            }
+            index += 1
+        }
+
+        row.add(cell.toString())
+        if (row.any { it.isNotEmpty() }) {
+            rows.add(row)
+        }
+        return rows
+    }
+
+    private fun buildCsv(words: List<VocabularyWordEntity>): String {
+        val builder = StringBuilder()
+        builder.appendLine("word,pronunciation,meaning,description,example")
+        words.forEach { word ->
+            builder.appendLine(
+                listOf(
+                    word.word,
+                    word.pronunciation.orEmpty(),
+                    word.meaning,
+                    word.description.orEmpty(),
+                    word.example.orEmpty()
+                ).joinToString(",") { escapeCsvCell(it) }
+            )
+        }
+        return builder.toString()
+    }
+
+    private fun escapeCsvCell(value: String): String {
+        val mustQuote = value.any { it == ',' || it == '"' || it == '\n' || it == '\r' }
+        val escaped = value.replace("\"", "\"\"")
+        return if (mustQuote) "\"$escaped\"" else escaped
     }
 
     private suspend fun ensureSeedData(userId: Long) {
@@ -286,4 +421,12 @@ class DefaultDeckRepository(
     }
 
     private class LocalNotFoundException(message: String) : Exception(message)
+
+    private data class CsvWordRow(
+        val word: String,
+        val pronunciation: String?,
+        val meaning: String,
+        val description: String?,
+        val example: String?
+    )
 }

@@ -163,7 +163,7 @@ class DeckDetailViewModel(
                     _uiState.update {
                         it.copy(
                             isExporting = false,
-                            exportFileName = "${deck.safeFileName()}_vocabulary.xlsx",
+                            exportFileName = "${deck.safeFileName()}_vocabulary.csv",
                             exportFileBytes = result.data
                         )
                     }

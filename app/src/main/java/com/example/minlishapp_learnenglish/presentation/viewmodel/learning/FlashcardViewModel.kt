@@ -22,6 +22,8 @@ data class FlashcardUiState(
     val isSubmitting: Boolean = false,
     val cards: List<ReviewCard> = emptyList(),
     val currentIndex: Int = 0,
+    val furthestPosition: Int = 0,
+    val submittedCardIds: Set<Long> = emptySet(),
     val isAnswerVisible: Boolean = false,
     val errorMessage: String? = null,
     val isReviewSession: Boolean = false,
@@ -33,19 +35,14 @@ data class FlashcardUiState(
     val currentPosition: Int
         get() = when {
             cards.isEmpty() -> 0
-            isReviewSession && summary.totalCards > 0 ->
-                (summary.reviewedCards + 1).coerceAtMost(summary.totalCards)
+            summary.totalCards > 0 -> furthestPosition.coerceIn(1, summary.totalCards)
             currentIndex >= cards.size -> cards.size
             else -> currentIndex + 1
         }
 
     val progressFraction: Float
         get() {
-            val total = if (isReviewSession && summary.totalCards > 0) {
-                summary.totalCards
-            } else {
-                cards.size
-            }
+            val total = summary.totalCards.takeIf { it > 0 } ?: cards.size
             return if (total == 0) 0f else currentPosition.toFloat() / total.toFloat()
         }
 
@@ -53,7 +50,10 @@ data class FlashcardUiState(
         get() = !isLoading && errorMessage == null && cards.isEmpty()
 
     val isCompleted: Boolean
-        get() = !isLoading && cards.isNotEmpty() && currentIndex >= cards.size
+        get() = !isLoading && summary.totalCards > 0 && summary.reviewedCards >= summary.totalCards
+
+    val isCurrentCardSubmitted: Boolean
+        get() = currentCard?.let { it.id in submittedCardIds } ?: false
 }
 
 // các event mà UI gửi cho VM
@@ -124,6 +124,8 @@ class FlashcardViewModel(
                             isLoading = false,
                             cards = result.data,
                             currentIndex = 0,
+                            furthestPosition = if (result.data.isEmpty()) 0 else 1,
+                            submittedCardIds = emptySet(),
                             isAnswerVisible = false,
                             errorMessage = null,
                             isReviewSession = isDueReviewSession,
@@ -174,9 +176,11 @@ class FlashcardViewModel(
             if (state.isSubmitting || state.cards.isEmpty() || state.currentIndex >= state.cards.lastIndex) {
                 state
             } else {
+                val nextIndex = state.currentIndex + 1
                 cardStartedAtMs = System.currentTimeMillis()
                 state.copy(
-                    currentIndex = state.currentIndex + 1,
+                    currentIndex = nextIndex,
+                    furthestPosition = maxOf(state.furthestPosition, nextIndex + 1),
                     isAnswerVisible = false,
                     errorMessage = null
                 )
@@ -188,6 +192,12 @@ class FlashcardViewModel(
         val state = _uiState.value
         val card = state.currentCard ?: return
         if (state.isSubmitting || !state.isAnswerVisible) return
+        if (card.id in state.submittedCardIds) {
+            viewModelScope.launch {
+                _effects.emit(FlashcardEffect.ShowSnackbar("This card was already reviewed."))
+            }
+            return
+        }
 
         if (isDueReviewSession && rating == ReviewRating.Again) {
             handleWrongReviewAnswer(card)
@@ -212,7 +222,10 @@ class FlashcardViewModel(
                     val isComplete = if (isDueReviewSession) {
                         removeCurrentReviewCard(updatedSummary)
                     } else {
-                        moveToNextLearningCard(updatedSummary)
+                        markCurrentLearningCardSubmitted(
+                            cardId = card.id,
+                            updatedSummary = updatedSummary
+                        )
                     }
                     cardStartedAtMs = System.currentTimeMillis()
                     if (isComplete) {
@@ -290,17 +303,49 @@ class FlashcardViewModel(
         }
     }
 
-    private fun moveToNextLearningCard(updatedSummary: ReviewSessionSummary): Boolean {
-        val nextIndex = _uiState.value.currentIndex + 1
-        _uiState.update {
-            it.copy(
+    private fun markCurrentLearningCardSubmitted(
+        cardId: Long,
+        updatedSummary: ReviewSessionSummary
+    ): Boolean {
+        var isComplete = false
+        _uiState.update { state ->
+            val submittedCardIds = state.submittedCardIds + cardId
+            val nextIndex = findNextUnsubmittedIndex(
+                cards = state.cards,
+                submittedCardIds = submittedCardIds,
+                currentIndex = state.currentIndex
+            )
+            isComplete = updatedSummary.reviewedCards >= updatedSummary.totalCards
+            state.copy(
                 isSubmitting = false,
-                currentIndex = nextIndex,
+                submittedCardIds = submittedCardIds,
+                currentIndex = if (isComplete) state.currentIndex else nextIndex,
+                furthestPosition = if (isComplete) {
+                    state.summary.totalCards
+                } else {
+                    maxOf(state.furthestPosition, nextIndex + 1)
+                },
                 isAnswerVisible = false,
                 summary = updatedSummary
             )
         }
-        return nextIndex >= _uiState.value.cards.size
+        return isComplete
+    }
+
+    private fun findNextUnsubmittedIndex(
+        cards: List<ReviewCard>,
+        submittedCardIds: Set<Long>,
+        currentIndex: Int
+    ): Int {
+        if (cards.isEmpty()) return 0
+
+        val nextForward = ((currentIndex + 1)..cards.lastIndex)
+            .firstOrNull { index -> cards[index].id !in submittedCardIds }
+        if (nextForward != null) return nextForward
+
+        return (0..currentIndex)
+            .firstOrNull { index -> cards[index].id !in submittedCardIds }
+            ?: currentIndex.coerceIn(0, cards.lastIndex)
     }
 
     private fun removeCurrentReviewCard(updatedSummary: ReviewSessionSummary): Boolean {

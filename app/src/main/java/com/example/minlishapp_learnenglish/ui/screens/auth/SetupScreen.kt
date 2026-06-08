@@ -76,14 +76,14 @@ fun SetupScreen(
             MinLishLogo(iconSize = 56.dp, showText = true)
 
             Text(
-                text = "Almost there! 🎉",
+                text = "Personalize your learning",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "Let us personalize your learning experience.\nYou can always change this later in Settings.",
+                text = "Choose a goal and level to set up your study plan.\nYou can update them later in Settings.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

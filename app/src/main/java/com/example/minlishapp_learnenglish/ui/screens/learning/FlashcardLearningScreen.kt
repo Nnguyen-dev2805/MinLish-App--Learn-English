@@ -152,7 +152,7 @@ private fun FlashcardContent(
         FlashcardTopBar(onBack = onBack)
         SessionProgress(
             current = uiState.currentPosition,
-            total = uiState.cards.size,
+            total = uiState.summary.totalCards.takeIf { it > 0 } ?: uiState.cards.size,
             progress = uiState.progressFraction
         )
         Box(
@@ -182,6 +182,7 @@ private fun FlashcardContent(
         FlashcardActions(
             isAnswerVisible = uiState.isAnswerVisible,
             isSubmitting = uiState.isSubmitting,
+            isAlreadyReviewed = uiState.isCurrentCardSubmitted,
             onRating = onRating
         )
         uiState.errorMessage?.let { message ->
@@ -549,6 +550,7 @@ private fun MediaIconButton(
 private fun FlashcardActions(
     isAnswerVisible: Boolean,
     isSubmitting: Boolean,
+    isAlreadyReviewed: Boolean,
     onRating: (ReviewRating) -> Unit
 ) {
     Column(
@@ -557,13 +559,29 @@ private fun FlashcardActions(
         verticalArrangement = Arrangement.spacedBy(MinLishSpacing.sm)
     ) {
         if (isAnswerVisible) {
+            if (isAlreadyReviewed) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ) {
+                    Text(
+                        text = "This card was already reviewed. You can only view it.",
+                        style = MaterialTheme.typography.labelLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(MinLishSpacing.md)
+                    )
+                }
+                return@Column
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.xs)
             ) {
                 RatingButton(
-                    label = "AGAIN",
-                    hint = "<1m",
+                    label = "Again",
+                    hint = "1m",
                     rating = ReviewRating.Again,
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -572,8 +590,8 @@ private fun FlashcardActions(
                     modifier = Modifier.weight(1f)
                 )
                 RatingButton(
-                    label = "HARD",
-                    hint = "2d",
+                    label = "Hard",
+                    hint = "+1d",
                     rating = ReviewRating.Hard,
                     containerColor = MaterialTheme.colorScheme.tertiaryFixed,
                     contentColor = MaterialTheme.colorScheme.onTertiaryFixed,
@@ -582,8 +600,8 @@ private fun FlashcardActions(
                     modifier = Modifier.weight(1f)
                 )
                 RatingButton(
-                    label = "GOOD",
-                    hint = "4d",
+                    label = "Good",
+                    hint = "3d",
                     rating = ReviewRating.Good,
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -592,7 +610,7 @@ private fun FlashcardActions(
                     modifier = Modifier.weight(1f)
                 )
                 RatingButton(
-                    label = "EASY",
+                    label = "Easy",
                     hint = "7d",
                     rating = ReviewRating.Easy,
                     containerColor = MaterialTheme.colorScheme.primaryFixed,
@@ -650,30 +668,30 @@ private fun RatingButton(
 ) {
     Surface(
         modifier = modifier
-            .height(64.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .height(56.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(enabled = enabled) { onRating(rating) },
-        shape = RoundedCornerShape(18.dp),
-        color = containerColor.copy(alpha = if (enabled) 1f else 0.55f),
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor.copy(alpha = if (enabled) 0.9f else 0.45f),
         contentColor = contentColor,
-        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.12f))
+        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.16f))
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = hint,
-                style = MaterialTheme.typography.labelMedium,
-                color = contentColor.copy(alpha = 0.72f)
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor.copy(alpha = 0.74f)
             )
         }
     }

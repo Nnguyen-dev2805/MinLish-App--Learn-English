@@ -71,7 +71,7 @@ fun DeckDetailScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
-            var fileName = "import.xlsx"
+            var fileName = "import.csv"
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
@@ -88,7 +88,7 @@ fun DeckDetailScreen(
     }
     val exportFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument(
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "text/csv"
         )
     ) { uri ->
         val fileBytes = uiState.exportFileBytes
@@ -161,9 +161,7 @@ fun DeckDetailScreen(
                             DeckImportExportRow(
                                 isExporting = uiState.isExporting,
                                 onImportClick = {
-                                    filePickerLauncher.launch(
-                                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                                    )
+                                    filePickerLauncher.launch("*/*")
                                 },
                                 onExportClick = onExport
                             )
@@ -269,13 +267,13 @@ private fun DeckImportExportRow(
         horizontalArrangement = Arrangement.spacedBy(MinLishSpacing.sm)
     ) {
         DeckSmallActionButton(
-            title = "Import Excel",
+            title = "Import CSV",
             icon = Icons.Outlined.FileUpload,
             onClick = onImportClick,
             modifier = Modifier.weight(1f)
         )
         DeckSmallActionButton(
-            title = if (isExporting) "Exporting..." else "Export Excel",
+            title = if (isExporting) "Exporting..." else "Export CSV",
             icon = Icons.Outlined.FileDownload,
             onClick = onExportClick,
             enabled = !isExporting,

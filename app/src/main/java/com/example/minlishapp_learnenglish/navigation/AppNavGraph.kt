@@ -152,6 +152,13 @@ fun AppNavGraph(
                                 launchSingleTop = true
                             }
                         }
+                        is RegisterEffect.NavigateSetup -> {
+                            val encodedName = java.net.URLEncoder.encode(effect.userName, "UTF-8")
+                            navController.navigate("${Routes.Setup}/$encodedName") {
+                                popUpTo(Routes.Register) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
                         RegisterEffect.NavigateLogin -> navController.popBackStack()
                         is RegisterEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                     }

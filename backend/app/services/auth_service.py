@@ -202,9 +202,9 @@ class AuthService:
         return MessageResponse(message="Password reset successfully.")
 
     def update_user(self, user: User, request: UpdateUserRequest) -> User:
-        update_data = request.model_dump(exclude_unset=True)
+        update_data = request.model_dump(exclude_unset=True) # biến json thành dict , exclude_unset chỉ lấy những field nào mà frontend gửi lên ko có thì bỏ qua
         for field, value in update_data.items():
-            setattr(user, field, value)
+            setattr(user, field, value) # setattr là hàm để set giá trị của một field của user
         self.db.commit()
         self.db.refresh(user)
         return user

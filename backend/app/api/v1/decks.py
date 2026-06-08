@@ -72,8 +72,8 @@ def export_deck_items(
     filename = f"{safe_name}_vocabulary.xlsx"
     return StreamingResponse(
         file_stream,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", # file trả về là excel
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}, # hãy tải file này xuống dưới dạng attachment và đặt tên file là file name
     )
 
 

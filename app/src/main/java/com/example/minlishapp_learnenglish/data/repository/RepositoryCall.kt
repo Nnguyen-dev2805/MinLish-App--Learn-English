@@ -6,7 +6,7 @@ import com.example.minlishapp_learnenglish.data.remote.dto.ErrorResponseDto
 import com.squareup.moshi.Moshi
 import retrofit2.HttpException
 
-internal suspend fun <T> safeApiCall(
+public suspend fun <T> safeApiCall(
     moshi: Moshi,
     block: suspend () -> T
 ): AppResult<T> {

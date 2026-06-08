@@ -9,12 +9,13 @@ from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User
 
+# False có nghĩa nếu có lỗi thì mình sẽ nhả lỗi do mình custom
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)], # get_db là hàm để tạo session database - tức là bên trong này có thể query database
 ) -> User:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise ApiError(

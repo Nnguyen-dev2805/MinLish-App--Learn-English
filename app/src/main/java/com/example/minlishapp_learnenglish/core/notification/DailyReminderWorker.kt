@@ -22,10 +22,15 @@ import java.util.Calendar
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
+
+// CoroutineWorker là worker của WorkManager dùng để chạy task nền hiển thị thông báo, đồng bộ dữ liệu
+// Đến giờ học mỗi ngày → hiện notification nhắc học
+
 class DailyReminderWorker(
     appContext: Context,
     workerParameters: WorkerParameters
 ) : CoroutineWorker(appContext, workerParameters) {
+    // doWork() là hàm WorkManager gọi khi đến giờ chạy task.
     override suspend fun doWork(): Result {
         val dailyTime = inputData.getString(KEY_DAILY_TIME) ?: DEFAULT_DAILY_TIME
         val timezone = inputData.getString(KEY_TIMEZONE) ?: DEFAULT_TIMEZONE
@@ -38,6 +43,14 @@ class DailyReminderWorker(
         return Result.success()
     }
 
+    // Intent là 1 hành động -> khi kích vào thông báo thì mở app
+    // Intent = mô tả hành động muốn Android thực hiện.
+    //
+    //Intent(context, MainActivity::class.java)
+    //= muốn mở MainActivity.
+    //
+    //PendingIntent
+    //= gói Intent lại để Android chạy sau, ví dụ khi user bấm notification.
     private fun showNotification() {
         val notificationManager = applicationContext
             .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

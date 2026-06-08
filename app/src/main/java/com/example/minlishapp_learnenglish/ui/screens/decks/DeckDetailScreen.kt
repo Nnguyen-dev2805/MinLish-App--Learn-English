@@ -86,20 +86,23 @@ fun DeckDetailScreen(
             }
         }
     }
+    // nos tạo 1 launcher để mở một activity hệ thống của android
+    // ở đây activity hệ thống là màn hình cho user chọn nơi tạo file
+    // chọn lưu file, tên file, trả về một uri
     val exportFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-    ) { uri ->
+    ) { uri -> // uri = vị trí file user vừa chọn để lưu
         val fileBytes = uiState.exportFileBytes
         if (uri == null || fileBytes == null) {
             if (fileBytes != null) onExportSaved(false)
-            return@rememberLauncherForActivityResult
+            return@rememberLauncherForActivityResult // thoát khỏi callback, không chạy tiếp
         }
         val saved = runCatching {
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                 outputStream.write(fileBytes)
-            } ?: error("Cannot open export file.")
+            } ?: error("Cannot open export file.") // ghi dữ liệu
         }.isSuccess
         onExportSaved(saved)
     }

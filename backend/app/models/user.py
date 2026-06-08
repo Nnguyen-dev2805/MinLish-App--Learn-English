@@ -53,8 +53,9 @@ class User(Base):
     )
 
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
-        back_populates="user",
-        cascade="all, delete-orphan",
+        back_populates="user", # nói rằng quan hệ này có chiều ngược lạ. Lấy những deck của user và cũng có thể lấy user từ deck đó
+        cascade="all, delete-orphan", # all = các thao tác chính trên User có thể lan sang Deck
+        # delete-orphan = nếu user bị xóa thì các deck của user cũng bị xóa
     )
     decks: Mapped[list["Deck"]] = relationship(
         back_populates="user",
@@ -63,5 +64,5 @@ class User(Base):
     notification_preference: Mapped[NotificationPreference | None] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
-        uselist=False,
+        uselist=False, # nói là chỉ trả về 1 object chứ không phải là list
     )

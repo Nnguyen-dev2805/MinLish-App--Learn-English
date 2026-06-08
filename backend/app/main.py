@@ -11,6 +11,12 @@ from app.core.exceptions import register_exception_handlers
 from app.services.email_reminder_scheduler import EmailReminderScheduler
 
 
+# Vòng đời của app FastAPI
+# Nó có 2 giai đoạn:
+# Trước yield -> chạy khi app bắt đầu khởi động
+# Sau yield -> chạy khi app chuẩn bị tắt
+# Tư duy:
+# App start -> chuẩn bị tài nguyên -> app chạy -> app shutdown -> dọn tài nguyên
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
@@ -49,7 +55,7 @@ def create_app() -> FastAPI:
     )
 
     register_exception_handlers(app)
-    app.include_router(api_router, prefix=settings.api_v1_prefix)
+    app.include_router(api_router, prefix=settings.api_v1_prefix) # nối route toàn bộ app
     app.mount(
         "/static",
         StaticFiles(directory=settings.resolved_static_dir),

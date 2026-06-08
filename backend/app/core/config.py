@@ -4,7 +4,11 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
+# Settings không chỉ là class bình thường.
+# Nó có khả năng đọc config từ:
+# - giá trị default trong code
+# - biến môi trường
+# - file .env
 class Settings(BaseSettings):
     app_name: str = "MinLish Backend"
     environment: str = "local"
@@ -55,6 +59,7 @@ class Settings(BaseSettings):
         return Path(__file__).resolve().parents[2] / path
 
 
+# cache kết quả để không tạo mới nhiều lần
 @lru_cache
 def get_settings() -> Settings:
     return Settings()

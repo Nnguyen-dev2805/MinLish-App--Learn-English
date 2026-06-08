@@ -74,7 +74,7 @@ class ImportExportService:
             select(VocabularyItem)
             .where(VocabularyItem.deck_id == deck.id)
             .order_by(VocabularyItem.word, VocabularyItem.id),
-        ).all()
+        ).all() # .all : lấy kết quả in ra thành list
 
         for item in items:
             sheet.append(
@@ -89,7 +89,7 @@ class ImportExportService:
 
         output = BytesIO()
         workbook.save(output)
-        output.seek(0)
+        output.seek(0) # để con trỏ chuyền về đầu trang để cho frontend đọc
         return output
 
     @staticmethod

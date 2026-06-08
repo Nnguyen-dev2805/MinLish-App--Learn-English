@@ -14,9 +14,9 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(
     bind=engine,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
+    autocommit=False, # SQLAlchemy không tự commit sau mỗi thao tác mà phải gọi commit() để commit
+    autoflush=False, # SQLAlchemy không tự flush sau mỗi thao tác mà phải gọi flush() để flush
+    expire_on_commit=False, # Nếu expire_on_commit=False, bạn có thể trả user ra response dễ hơn, không bị cần reload lại ngay.
 )
 
 

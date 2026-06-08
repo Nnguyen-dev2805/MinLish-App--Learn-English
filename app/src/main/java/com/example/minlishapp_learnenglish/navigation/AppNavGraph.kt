@@ -20,44 +20,50 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.minlishapp_learnenglish.core.AppContainer
-import com.example.minlishapp_learnenglish.presentation.viewmodel.viewModelFactory
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.AuthEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SplashViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SetupEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckDetailEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckDetailEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckDetailViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckListEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckListEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckListViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.WordEditorEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.WordEditorEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.WordEditorViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.home.HomeEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.home.HomeViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueViewModel
+import com.example.minlishapp_learnenglish.viewModel.viewModelFactory
+import com.example.minlishapp_learnenglish.viewModel.auth.AuthEffect
+import com.example.minlishapp_learnenglish.viewModel.auth.ForgotPasswordViewModel
+import com.example.minlishapp_learnenglish.viewModel.auth.LoginViewModel
+import com.example.minlishapp_learnenglish.viewModel.auth.ResetPasswordViewModel
+import com.example.minlishapp_learnenglish.viewModel.auth.VerifyOtpViewModel
+import com.example.minlishapp_learnenglish.viewModel.auth.SplashViewModel
+import com.example.minlishapp_learnenglish.viewModel.auth.RegisterViewModel
+import com.example.minlishapp_learnenglish.viewModel.auth.RegisterEffect
+import com.example.minlishapp_learnenglish.viewModel.auth.RegisterEvent
+import com.example.minlishapp_learnenglish.viewModel.auth.SetupViewModel
+import com.example.minlishapp_learnenglish.viewModel.auth.SetupEvent
+import com.example.minlishapp_learnenglish.viewModel.auth.SetupEffect
+import com.example.minlishapp_learnenglish.viewModel.decks.CreateDeckEffect
+import com.example.minlishapp_learnenglish.viewModel.decks.CreateDeckEvent
+import com.example.minlishapp_learnenglish.viewModel.decks.CreateDeckViewModel
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckDetailEffect
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckDetailEvent
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckDetailViewModel
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckListEffect
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckListEvent
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckListViewModel
+import com.example.minlishapp_learnenglish.viewModel.decks.WordEditorEffect
+import com.example.minlishapp_learnenglish.viewModel.decks.WordEditorEvent
+import com.example.minlishapp_learnenglish.viewModel.decks.WordEditorViewModel
+import com.example.minlishapp_learnenglish.viewModel.home.HomeEffect
+import com.example.minlishapp_learnenglish.viewModel.home.HomeViewModel
+import com.example.minlishapp_learnenglish.viewModel.learning.FlashcardEffect
+import com.example.minlishapp_learnenglish.viewModel.learning.FlashcardEvent
+import com.example.minlishapp_learnenglish.viewModel.learning.FlashcardViewModel
+import com.example.minlishapp_learnenglish.viewModel.learning.ReviewDueEffect
+import com.example.minlishapp_learnenglish.viewModel.learning.ReviewDueEvent
+import com.example.minlishapp_learnenglish.viewModel.learning.ReviewDueViewModel
 import com.example.minlishapp_learnenglish.domain.model.ReviewSessionSummary
-import com.example.minlishapp_learnenglish.presentation.viewmodel.progress.ProgressEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.progress.ProgressEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.progress.ProgressViewModel
-import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileEffect
-import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileEvent
-import com.example.minlishapp_learnenglish.presentation.viewmodel.profile.ProfileViewModel
+import com.example.minlishapp_learnenglish.viewModel.progress.ProgressEffect
+import com.example.minlishapp_learnenglish.viewModel.progress.ProgressEvent
+import com.example.minlishapp_learnenglish.viewModel.progress.ProgressViewModel
+import com.example.minlishapp_learnenglish.viewModel.profile.ProfileEffect
+import com.example.minlishapp_learnenglish.viewModel.profile.ProfileEvent
+import com.example.minlishapp_learnenglish.viewModel.profile.ProfileViewModel
+import com.example.minlishapp_learnenglish.ui.screens.auth.ForgotPasswordScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.LoginScreen
+import com.example.minlishapp_learnenglish.ui.screens.auth.ResetPasswordScreen
+import com.example.minlishapp_learnenglish.ui.screens.auth.VerifyOtpScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SetupScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.SplashScreen
 import com.example.minlishapp_learnenglish.ui.screens.auth.RegisterScreen
@@ -131,7 +137,93 @@ fun AppNavGraph(
                 onEmailChange = viewModel::onEmailChange,
                 onPasswordChange = viewModel::onPasswordChange,
                 onLogin = viewModel::loginWithEmailPassword,
-                onSignUp = viewModel::navigateRegister
+                onSignUp = viewModel::navigateRegister,
+                onForgotPassword = viewModel::navigateForgotPassword
+            )
+        }
+        composable(Routes.ForgotPassword) {
+            val viewModel: ForgotPasswordViewModel = viewModel(
+                factory = viewModelFactory {
+                    ForgotPasswordViewModel(appContainer.authRepository)
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        is AuthEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                        else -> navController.handleAuthEffect(effect, currentRoute = Routes.ForgotPassword)
+                    }
+                }
+            }
+
+            ForgotPasswordScreen(
+                uiState = uiState,
+                snackbarHostState = snackbarHostState,
+                onEmailChange = viewModel::onEmailChange,
+                onSendOtp = viewModel::sendOtp,
+                onBack = viewModel::goBack
+            )
+        }
+        composable(Routes.VerifyOtp) {
+            val viewModel: VerifyOtpViewModel = viewModel(
+                factory = viewModelFactory {
+                    VerifyOtpViewModel(
+                        authRepository = appContainer.authRepository,
+                        otpManager = appContainer.otpManager
+                    )
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        is AuthEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                        else -> navController.handleAuthEffect(effect, currentRoute = Routes.VerifyOtp)
+                    }
+                }
+            }
+
+            VerifyOtpScreen(
+                uiState = uiState,
+                snackbarHostState = snackbarHostState,
+                onOtpChange = viewModel::onOtpChange,
+                onVerify = viewModel::verifyOtp,
+                onBack = viewModel::goBack
+            )
+        }
+        composable(Routes.ResetPassword) {
+            val viewModel: ResetPasswordViewModel = viewModel(
+                factory = viewModelFactory {
+                    ResetPasswordViewModel(
+                        authRepository = appContainer.authRepository,
+                        otpManager = appContainer.otpManager
+                    )
+                }
+            )
+            val uiState by viewModel.uiState.collectAsState()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(viewModel) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        is AuthEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                        else -> navController.handleAuthEffect(effect, currentRoute = Routes.ResetPassword)
+                    }
+                }
+            }
+
+            ResetPasswordScreen(
+                uiState = uiState,
+                snackbarHostState = snackbarHostState,
+                onPasswordChange = viewModel::onPasswordChange,
+                onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+                onSubmit = viewModel::resetPassword,
+                onBack = viewModel::goBack
             )
         }
         composable(Routes.Register) {
@@ -788,8 +880,16 @@ private fun WordEditorRoute(
 private fun NavHostController.handleAuthEffect(effect: AuthEffect, currentRoute: String) {
     when (effect) {
         AuthEffect.NavigateHome -> navigateReplacingCurrentAuth(currentRoute, Routes.Home)
-        AuthEffect.NavigateLogin -> navigateReplacingCurrentAuth(currentRoute, Routes.Login)
+        AuthEffect.NavigateLogin -> {
+            navigate(Routes.Login) {
+                popUpTo(Routes.Login) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
         AuthEffect.NavigateRegister -> navigate(Routes.Register)
+        AuthEffect.NavigateForgotPassword -> navigate(Routes.ForgotPassword)
+        AuthEffect.NavigateVerifyOtp -> navigate(Routes.VerifyOtp)
+        AuthEffect.NavigateResetPassword -> navigate(Routes.ResetPassword)
         is AuthEffect.ShowSnackbar -> Unit
     }
 }

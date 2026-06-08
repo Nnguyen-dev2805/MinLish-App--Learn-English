@@ -33,8 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckFilter
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckListUiState
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckFilter
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckListUiState
 import com.example.minlishapp_learnenglish.ui.components.DeckCard
 import com.example.minlishapp_learnenglish.ui.components.EmptyStateView
 import com.example.minlishapp_learnenglish.ui.components.ErrorStateView

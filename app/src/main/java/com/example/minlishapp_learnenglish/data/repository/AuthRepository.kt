@@ -1,5 +1,7 @@
 package com.example.minlishapp_learnenglish.data.repository
 
+import com.example.minlishapp_learnenglish.core.email.EmailSender
+import com.example.minlishapp_learnenglish.core.otp.OtpManager
 import com.example.minlishapp_learnenglish.core.result.AppError
 import com.example.minlishapp_learnenglish.core.result.AppResult
 import com.example.minlishapp_learnenglish.data.local.dao.UserDao
@@ -25,10 +27,18 @@ interface AuthRepository {
         level: String? = null,
         dailyNewWords: Int? = null
     ): AppResult<User>
+    suspend fun sendForgotPasswordOtp(email: String): AppResult<Unit>
+    suspend fun verifyOtp(email: String, otp: String): AppResult<Unit>
+    suspend fun verifyOtpAndResetPassword(
+        email: String,
+        otp: String,
+        newPassword: String
+    ): AppResult<Unit>
 }
 
 class DefaultAuthRepository(
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val otpManager: OtpManager
 ) : AuthRepository {
     override suspend fun login(email: String, password: String): AppResult<User> {
         return localCall {
@@ -119,6 +129,63 @@ class DefaultAuthRepository(
             )
             userDao.updateUser(updatedUser)
             updatedUser.toDomain()
+        }
+    }
+
+    override suspend fun sendForgotPasswordOtp(email: String): AppResult<Unit> {
+        return localCall {
+            val cleanEmail = email.trim().lowercase()
+            require(cleanEmail.isNotBlank()) { "Email is required." }
+            userDao.getUserByEmail(cleanEmail)
+                ?: throw LocalAuthException("Email not found.")
+
+            val otp = (100000..999999).random().toString()
+            otpManager.saveOtp(cleanEmail, otp)
+
+            val sent = EmailSender.sendOtpEmail(cleanEmail, otp)
+            if (!sent) {
+                throw LocalAuthException("Failed to send email. Check your internet.")
+            }
+        }
+    }
+
+    override suspend fun verifyOtp(email: String, otp: String): AppResult<Unit> {
+        return localCall {
+            val cleanEmail = email.trim().lowercase()
+            val savedEmail = otpManager.getEmail()
+            if (savedEmail != cleanEmail) {
+                throw LocalAuthException("Invalid OTP.")
+            }
+            if (!otpManager.isOtpValid(otp.trim())) {
+                throw LocalAuthException("Invalid or expired OTP.")
+            }
+            otpManager.markVerified()
+        }
+    }
+
+    override suspend fun verifyOtpAndResetPassword(
+        email: String,
+        otp: String,
+        newPassword: String
+    ): AppResult<Unit> {
+        return localCall {
+            val cleanEmail = email.trim().lowercase()
+            require(newPassword.length >= 6) { "Password must be at least 6 characters." }
+
+            if (otpManager.getEmail() != cleanEmail) {
+                throw LocalAuthException("Session expired. Start again.")
+            }
+            if (!otpManager.isVerified()) {
+                if (!otpManager.isOtpValid(otp.trim())) {
+                    throw LocalAuthException("Invalid or expired OTP.")
+                }
+                otpManager.markVerified()
+            }
+
+            userDao.getUserByEmail(cleanEmail)
+                ?: throw LocalAuthException("Email not found.")
+            userDao.updatePasswordByEmail(cleanEmail, newPassword)
+            otpManager.clear()
         }
     }
 

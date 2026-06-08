@@ -3,6 +3,9 @@ package com.example.minlishapp_learnenglish.navigation
 object Routes {
     const val Splash = "splash"
     const val Login = "login"
+    const val ForgotPassword = "forgot_password"
+    const val VerifyOtp = "verify_otp"
+    const val ResetPassword = "reset_password"
     const val Register = "register"
     const val Setup = "setup"
     const val Home = "main/home"

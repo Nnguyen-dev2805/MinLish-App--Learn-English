@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.RegisterUiState
+import com.example.minlishapp_learnenglish.viewModel.auth.RegisterUiState
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton
 import com.example.minlishapp_learnenglish.ui.components.MinLishCard
 import com.example.minlishapp_learnenglish.ui.components.MinLishLogo

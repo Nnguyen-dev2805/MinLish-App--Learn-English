@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.minlishapp_learnenglish.domain.model.VocabularyDeck
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.DeckDetailUiState
+import com.example.minlishapp_learnenglish.viewModel.decks.DeckDetailUiState
 import com.example.minlishapp_learnenglish.ui.components.DeckHeroIcon
 import com.example.minlishapp_learnenglish.ui.components.EmptyStateView
 import com.example.minlishapp_learnenglish.ui.components.ErrorStateView

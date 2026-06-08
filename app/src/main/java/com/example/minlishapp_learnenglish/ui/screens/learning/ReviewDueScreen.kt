@@ -36,8 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueChoice
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.ReviewDueUiState
+import com.example.minlishapp_learnenglish.viewModel.learning.ReviewDueChoice
+import com.example.minlishapp_learnenglish.viewModel.learning.ReviewDueUiState
 import com.example.minlishapp_learnenglish.ui.components.EmptyStateView
 import com.example.minlishapp_learnenglish.ui.components.ErrorStateView
 import com.example.minlishapp_learnenglish.ui.components.LoadingStateView

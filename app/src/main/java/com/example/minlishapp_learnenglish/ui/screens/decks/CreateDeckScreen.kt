@@ -35,7 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.CreateDeckUiState
+import com.example.minlishapp_learnenglish.viewModel.decks.CreateDeckUiState
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton
 import com.example.minlishapp_learnenglish.ui.components.MinLishTextField
 import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing

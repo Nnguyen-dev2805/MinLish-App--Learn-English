@@ -27,7 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.LoginUiState
+import com.example.minlishapp_learnenglish.viewModel.auth.LoginUiState
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton
 import com.example.minlishapp_learnenglish.ui.components.MinLishCard
 import com.example.minlishapp_learnenglish.ui.components.MinLishLogo
@@ -43,6 +43,7 @@ fun LoginScreen(
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
     onSignUp: () -> Unit,
+    onForgotPassword: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -106,6 +107,19 @@ fun LoginScreen(
                         isError = uiState.passwordError != null,
                         enabled = !uiState.isLoading
                     )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = onForgotPassword, enabled = !uiState.isLoading) {
+                            Text(
+                                text = "Forgot password?",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(4.dp))
 

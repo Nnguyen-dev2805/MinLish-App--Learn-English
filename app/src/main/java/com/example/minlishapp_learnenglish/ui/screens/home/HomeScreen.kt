@@ -35,7 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.minlishapp_learnenglish.domain.model.DailyLearningPlan
 import com.example.minlishapp_learnenglish.domain.model.ProgressStats
-import com.example.minlishapp_learnenglish.presentation.viewmodel.home.HomeUiState
+import com.example.minlishapp_learnenglish.viewModel.home.HomeUiState
 import com.example.minlishapp_learnenglish.ui.components.DailyPlanCard
 import com.example.minlishapp_learnenglish.ui.components.MiniActivityChart
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton

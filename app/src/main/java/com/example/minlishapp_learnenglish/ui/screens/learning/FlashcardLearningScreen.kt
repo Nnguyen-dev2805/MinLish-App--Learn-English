@@ -48,7 +48,7 @@ import androidx.compose.runtime.remember
 import com.example.minlishapp_learnenglish.core.audio.SimpleAudioPlayer
 import com.example.minlishapp_learnenglish.domain.model.ReviewCard
 import com.example.minlishapp_learnenglish.domain.model.ReviewRating
-import com.example.minlishapp_learnenglish.presentation.viewmodel.learning.FlashcardUiState
+import com.example.minlishapp_learnenglish.viewModel.learning.FlashcardUiState
 import com.example.minlishapp_learnenglish.ui.components.EmptyStateView
 import com.example.minlishapp_learnenglish.ui.components.ErrorStateView
 import com.example.minlishapp_learnenglish.ui.components.LoadingStateView

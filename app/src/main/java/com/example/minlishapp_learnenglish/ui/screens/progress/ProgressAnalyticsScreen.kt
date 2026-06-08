@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.example.minlishapp_learnenglish.domain.model.DailyActivity
 import com.example.minlishapp_learnenglish.domain.model.ProgressStats
 import com.example.minlishapp_learnenglish.domain.model.RetentionStats
-import com.example.minlishapp_learnenglish.presentation.viewmodel.progress.ProgressUiState
+import com.example.minlishapp_learnenglish.viewModel.progress.ProgressUiState
 import com.example.minlishapp_learnenglish.ui.components.ErrorStateView
 import com.example.minlishapp_learnenglish.ui.components.LoadingStateView
 import com.example.minlishapp_learnenglish.ui.components.MinLishCard

@@ -1,6 +1,7 @@
 package com.example.minlishapp_learnenglish.core
 
 import android.content.Context
+import com.example.minlishapp_learnenglish.core.otp.OtpManager
 import com.example.minlishapp_learnenglish.core.notification.ReminderScheduler
 import com.example.minlishapp_learnenglish.core.notification.WorkManagerReminderScheduler
 import com.example.minlishapp_learnenglish.data.local.database.DatabaseSeeder
@@ -42,8 +43,11 @@ class AppContainer(context: Context) {
     private val reviewDao = database.reviewDao()
     private val notificationSettingsDao = database.notificationSettingsDao()
 
+    val otpManager = OtpManager(appContext)
+
     val authRepository: AuthRepository = DefaultAuthRepository(
-        userDao = userDao
+        userDao = userDao,
+        otpManager = otpManager
     )
     val learningRepository: LearningRepository = DefaultLearningRepository(
         context = appContext,

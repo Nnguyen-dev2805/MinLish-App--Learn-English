@@ -32,4 +32,7 @@ interface UserDao {
 
     @Query("UPDATE users SET isLoggedIn = 1 WHERE id = :userId")
     suspend fun markLoggedIn(userId: Long)
+
+    @Query("UPDATE users SET password = :password WHERE email = :email")
+    suspend fun updatePasswordByEmail(email: String, password: String)
 }

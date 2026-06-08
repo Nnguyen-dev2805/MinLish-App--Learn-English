@@ -30,7 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.presentation.viewmodel.decks.WordEditorUiState
+import com.example.minlishapp_learnenglish.viewModel.decks.WordEditorUiState
 import com.example.minlishapp_learnenglish.ui.components.ErrorStateView
 import com.example.minlishapp_learnenglish.ui.components.LoadingStateView
 import com.example.minlishapp_learnenglish.ui.components.MinLishButton

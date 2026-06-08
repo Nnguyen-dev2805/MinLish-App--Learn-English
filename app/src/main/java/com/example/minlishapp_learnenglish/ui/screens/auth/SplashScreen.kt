@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.minlishapp_learnenglish.presentation.viewmodel.auth.SplashUiState
+import com.example.minlishapp_learnenglish.viewModel.auth.SplashUiState
 import com.example.minlishapp_learnenglish.ui.components.MinLishLogo
 import com.example.minlishapp_learnenglish.ui.theme.MinLishSpacing
 

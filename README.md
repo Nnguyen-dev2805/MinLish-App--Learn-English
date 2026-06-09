@@ -16,9 +16,7 @@ Mở project bằng **Android Studio** → chọn emulator/thiết bị → Run 
 | Database | Room (SQLite) |
 | Async | Kotlin Coroutines, StateFlow |
 | Navigation | Navigation Compose |
-| Background | WorkManager (nhắc học local) |
-| DI | Manual — `AppContainer` (không Hilt) |
-| Test | JUnit, Coroutines Test, Room Testing |
+| WorkManager | WorkManager (nhắc học local) 
 
 **minSdk 24** · **targetSdk 36** · **Java 11**
 
